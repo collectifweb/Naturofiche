@@ -1,6 +1,15 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { CheckCircle2, ArrowRight, CalendarDays, RefreshCw, GraduationCap } from "lucide-react";
+import {
+  CheckCircle2,
+  ArrowRight,
+  CalendarDays,
+  RefreshCw,
+  GraduationCap,
+  MessageCircleQuestion,
+  ClipboardCheck,
+  Activity,
+} from "lucide-react";
 import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { Chip, type ChipVariant } from "@/components/ui/chip";
@@ -62,6 +71,7 @@ type CourseWithRelations = Prisma.CourseGetPayload<{
     sections: true;
     studyUnits: { include: { fiche: true; progress: true } };
     questions: true;
+    officialKey: true;
   };
 }>;
 
@@ -77,6 +87,7 @@ export default async function CoursePage({
       sections: { orderBy: { ordre: "asc" } },
       studyUnits: { orderBy: { ordre: "asc" }, include: { fiche: true, progress: true } },
       questions: { orderBy: { id: "asc" } },
+      officialKey: true,
     },
   });
 
@@ -144,6 +155,7 @@ async function CourseContent({ course }: { course: CourseWithRelations }) {
     <>
       <PlanHeader courseId={course.id} plan={plan} />
       <EtudeActions courseId={course.id} dusRevision={dusRevision} modeRevision={plan.modeRevision} />
+      <OutilsCourse courseId={course.id} corrigeApplique={!!course.officialKey} />
       <FichesParcours courseId={course.id} plan={plan} />
       <Reference course={course} />
     </>
@@ -187,6 +199,43 @@ function EtudeActions({
           className={buttonVariants({ variant: "outline", size: "lg", className: "w-full" })}
         >
           <GraduationCap /> Examen blanc
+        </Link>
+      </div>
+    </section>
+  );
+}
+
+function OutilsCourse({
+  courseId,
+  corrigeApplique,
+}: {
+  courseId: string;
+  corrigeApplique: boolean;
+}) {
+  return (
+    <section className="space-y-2.5">
+      <h2 className="font-heading text-lg font-semibold">Outils</h2>
+      <div className="grid grid-cols-1 gap-2.5 min-[440px]:grid-cols-3">
+        <Link
+          href={`/course/${courseId}/qa`}
+          className={buttonVariants({ variant: "outline", size: "lg", className: "w-full" })}
+        >
+          <MessageCircleQuestion /> Q&amp;A
+        </Link>
+        <Link
+          href={`/course/${courseId}/corrige`}
+          className={buttonVariants({ variant: "outline", size: "lg", className: "w-full" })}
+        >
+          <ClipboardCheck /> Corrigé
+          {corrigeApplique && (
+            <span className="ml-1 size-1.5 rounded-full bg-primary" aria-hidden />
+          )}
+        </Link>
+        <Link
+          href={`/course/${courseId}/usage`}
+          className={buttonVariants({ variant: "outline", size: "lg", className: "w-full" })}
+        >
+          <Activity /> Usage
         </Link>
       </div>
     </section>

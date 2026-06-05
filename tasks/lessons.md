@@ -147,3 +147,22 @@ Patterns appris pendant le développement, pour éviter de répéter les erreurs
   **mettre en avant** la révision dans les derniers jours, sans jamais la bloquer le reste du temps.
 - **Tirage varié** d'un examen : `Math.random` est OK dans un composant Server Next (≠ script Workflow où il est
   interdit) ; `router.refresh()` côté client redéclenche le rendu serveur → nouveau mélange de 20 questions.
+
+## Q&A, corrigé officiel & usage API (M5)
+
+- **Q&A direct = sans état + source obligatoire.** Le retrieval mots-clés suffit pour SQLite mono-utilisateur :
+  normaliser sans accents, ignorer les sections `meta`, scorer `titre ×3 + texte ×1`, envoyer seulement les
+  extraits top N tronqués. L'IA doit renvoyer une source structurée (`cours | exterieur | mixte`) ; l'UI affiche
+  ce badge avant le texte pour satisfaire le critère de traçabilité.
+- **Ne pas confondre "source cours" et "sections candidates".** Le modèle reçoit des extraits indexés `#0..n`,
+  mais seules les `sectionsCitees` retournées doivent être affichées comme sources. Si le modèle répond depuis
+  ses connaissances, l'UI ne doit pas transformer les sections candidates en citation.
+- **Parser le corrigé par priorités.** Extraire d'abord les paires numérotées (`1. A`, `1A`, etc.). En fallback,
+  prendre les lettres A-D autonomes, puis seulement une suite compacte composée de A-D et séparateurs neutres.
+  Éviter le fallback trop large `replace(/[^ABCD]/g, "")`, qui peut capturer des lettres dans un libellé.
+- **Test de corrigé = restaurer réponses ET statuts.** Un import officiel met toutes les questions en
+  `statutValidation="valide"` par conception. Un test avec faux corrigé doit donc restaurer aussi les statuts
+  initiaux (ex. la question F-354 #8 était `rejete`) et supprimer la `OfficialKey` de test si elle n'existait
+  pas avant.
+- **Usage API sans coût mensonger.** Agréger `ApiUsageLog` par `phase`/`model` avec appels et tokens suffit.
+  Ne pas afficher de coût si les prix modèles ne sont pas maintenus comme source fiable.

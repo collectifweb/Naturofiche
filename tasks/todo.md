@@ -134,11 +134,32 @@ Boîtes de Leitner sur les `quiz_verif` + examen blanc noté. **Aucune migration
 
 **Limites assumées M4** : l'examen blanc est **sans état** (score calculé + affiché, pas d'historique d'essais persisté — évite une migration ; §12 ne demande que le score + verdict). Les `examen_blanc` restent hors Leitner (jeu distinct des `quiz_verif`). La révision porte sur les notions **déjà vues** (les non-vues passent par les fiches).
 
-## M5 — Q&A + corrigé officiel + suivi API  ⏳ à faire (spec prête)
+## M5 — Q&A + corrigé officiel + suivi API ✅ livré
 
 > Spec d'implémentation **autonome** : [tasks/M5-plan.md](M5-plan.md) (à dérouler dans une session fraîche).
 
-- Q&A avec indication de source (cours / extérieur) — §5.6, critère §12
-- Import du corrigé officiel, comparaison + journalisation des écarts (`OfficialKey`) — §5.8
-- Tableau de suivi de l'usage API (`ApiUsageLog`) — §11
-- **Aucune migration** (`OfficialKey` + `ApiUsageLog` existent ; Q&A sans état).
+Contraintes M5 à garder visibles :
+- [x] **Aucune migration** (`OfficialKey` + `ApiUsageLog` existent ; Q&A sans état).
+- [x] Commandes Node avec `export PATH="/home/alexandre/.nvm/versions/node/v20.20.2/bin:$PATH";`.
+- [x] IA strictement serveur : Q&A via route API + `runStructured`, jamais côté client.
+- [x] Routes Next 16 : `params: Promise<{ id: string }>` + `dynamic = "force-dynamic"` ; liens boutons via `buttonVariants`, sans `asChild`.
+
+Plan d'implémentation à valider avant de coder :
+- [x] **Q&A lib** : créer `src/lib/qa.ts` avec retrieval mots-clés pur (`Section`, top 4, exclusion `meta`) + appel `runStructured` phase `qa`, modèle `MODELS.qa`, schéma `{ reponse, source, sectionsCitees }`.
+- [x] **Q&A API/UI** : ajouter `POST /api/course/[id]/qa`, garde cours `pret`, remap des sections citées ; créer `QaPanel` client avec historique local, badge source (`cours` / `complément extérieur` / `cours + extérieur`) et page `/course/[id]/qa`.
+- [x] **Corrigé lib** : créer `src/lib/corrige.ts` avec `parseCorrige` robuste (paires numérotées, suite de 20 lettres, lettres séparées) + `calculerEcarts` selon les `examen_officiel` ordonnées par `id`.
+- [x] **Corrigé API/UI** : ajouter `POST /api/course/[id]/corrige` (upsert `OfficialKey`, journalisation JSON des écarts, correction des `bonneReponse`, `statutValidation="valide"`), composant `CorrigeImport` avec aperçu local, toast et page `/course/[id]/corrige`.
+- [x] **Usage API** : ajouter page `/course/[id]/usage` qui agrège `ApiUsageLog` par `phase`/`model` avec appels, tokens in/out et total.
+- [x] **Câblage dashboard** : ajouter une section « Outils » sur `/course/[id]` avec liens Q&A, Corrigé officiel et Usage API, en respectant le design mobile-first.
+- [x] **Vérifications automatisées** : lancer `npm run lint`, `npx tsc --noEmit`, `npm run build` sous Node 20.
+- [x] **Vérif live F-354** (`cmq0xcvix0000osbydme0whft`, `http://localhost:3000`) : tester Q&A zinc, import corrigé avec 2 écarts puis restaurer l'état, vérifier page usage et ligne `qa`.
+- [x] **Docs de fin** : cocher M5 + Review dans ce fichier, ajouter les leçons M5, mettre à jour `CLAUDE.md` et `README.md` en marquant NaturoFiche complet M1→M5.
+- [x] **Git** : commit conventionnel sans attribution IA ; ne pas pousser sans demande explicite.
+
+### Review M5 (vérif sur F-354 ingéré)
+- **Q&A** : `/course/cmq0xcvix0000osbydme0whft/qa` répond 200 ; `POST /api/course/cmq0xcvix0000osbydme0whft/qa` avec « Quels sont les signes de carence en zinc ? » → réponse sur les signes de carence, `source="cours"`, section citée « Zinc (Zn) ». L'appel a journalisé 1 ligne `qa` (`claude-haiku-4-5-20251001`, 2 778 in / 252 out).
+- **Corrigé officiel** : `POST /api/course/cmq0xcvix0000osbydme0whft/corrige` avec 20 réponses dont 2 modifiées → `total=20`, `ecarts=2`, `OfficialKey` créée avec 20 réponses + 2 écarts, réponses 1/2 corrigées. État restauré ensuite : `OfficialKey=null`, réponses 1/2 revenues à D/A, question #8 revenue à `statutValidation="rejete"`.
+- **Usage API** : `/course/cmq0xcvix0000osbydme0whft/usage` répond 200 et agrège les logs : ingestion 15 appels / 194 146 in / 60 393 out ; Q&A 1 appel / 2 778 in / 252 out ; vérification 12 appels / 84 915 in / 13 438 out ; total 28 appels / 281 839 in / 74 083 out.
+- **Validation technique** : `npm run lint`, `npx tsc --noEmit`, `npm run build` verts sous Node 20. Le build a nécessité l'accès réseau pour `next/font` (polices Google), puis a compilé toutes les routes M5.
+
+**Limites assumées M5** : Q&A sans historique persistant et sans embeddings (retrieval lexical), pas de web live (repli sur connaissances du modèle), pas d'estimation de coût affichée pour éviter des prix obsolètes.
