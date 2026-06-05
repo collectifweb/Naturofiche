@@ -49,7 +49,7 @@ export default async function Home() {
       ) : (
         <Card className="py-5">
           <CardHeader>
-            <CardTitle className="text-lg leading-snug">{course.title}</CardTitle>
+            <CardTitle className="text-lg leading-snug break-words">{course.title}</CardTitle>
             <CardDescription className="flex flex-wrap items-center gap-x-2 gap-y-1">
               {course.code && (
                 <span className="font-mono text-foreground">F-{course.code}</span>

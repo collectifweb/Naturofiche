@@ -2,8 +2,6 @@
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 
-@custom-variant dark (&:is(.dark *));
-
 /* ────────────────────────────────────────────────────────────────────────
    Tokens — d'après DESIGN.md : « papier chaud tenu par une structure exacte ».
    Neutres tièdes (teinte ~70-83), un seul accent vert herbacé, jamais de #fff/#000.
@@ -84,8 +82,27 @@
   }
   body {
     @apply bg-background text-foreground font-sans antialiased;
+    /* viewport-fit=cover est activé (layout.tsx) : on empêche le contenu de passer
+       sous l'encoche / la barre d'état / l'indicateur d'accueil en mode PWA. */
+    padding-top: env(safe-area-inset-top);
+    padding-bottom: env(safe-area-inset-bottom);
+    padding-left: env(safe-area-inset-left);
+    padding-right: env(safe-area-inset-right);
   }
   html {
     @apply font-sans;
+  }
+}
+
+/* Respect de prefers-reduced-motion (DESIGN.md §Accessibility) : les animations
+   ne portent jamais d'information seule, on peut donc les neutraliser sans perte. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
   }
 }

@@ -34,7 +34,8 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#16a34a",
+  // Chrome PWA = fond papier chaud (pas le vert : il reste un signal rare, cf. DESIGN.md).
+  themeColor: "#fbf8f2",
   width: "device-width",
   initialScale: 1,
   viewportFit: "cover",
