@@ -1,13 +1,22 @@
-// NaturoFiche — schéma complet (mono-utilisateur, SQLite).
-// SQLite n'a ni tableaux ni enums natifs : les listes sont stockées en String JSON,
-// les "enums" en String documentés (voir commentaires).
+// NaturoFiche — schéma complet (mono-utilisateur).
+// DB de prod = MySQL/MariaDB (cPanel WHC), accédée via le driver adapter pur-JS
+// `@prisma/adapter-mariadb` (pas de moteur Rust, contourne CageFS). Voir tasks/DEPLOY.md.
+// MySQL n'a pas d'enums utilisés ici : les listes restent du String JSON (colonnes TEXT),
+// les "enums" restent des String documentés (voir commentaires). Champs longs => @db.Text
+// (sinon MySQL mappe String -> varchar(191) et tronque le texte verbatim / le markdown / le JSON).
 
 generator client {
-  provider = "prisma-client-js"
+  provider      = "prisma-client-js"
+  // Driver adapters (GA depuis Prisma 6) : la connexion DB est faite par l'adapter
+  // pur-JS @prisma/adapter-mariadb (réseau MySQL, jamais d'I/O fichier) ; le moteur Rust
+  // ne fait que la planification. Sur WHC/CageFS le binaire moteur s'exécute (vérifié),
+  // seul l'accès fichier SQLite était bloqué — d'où le passage à MySQL. Voir tasks/DEPLOY.md.
+  // Cible debian-openssl-1.1.x = runtime détecté par Prisma sur l'hôte WHC (CloudLinux el8).
+  binaryTargets = ["native", "debian-openssl-1.1.x"]
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "mysql"
   url      = env("DATABASE_URL")
 }
 
@@ -24,7 +33,7 @@ model Course {
   // Progression de l'ingestion IA (M2) : label d'étape + % pour la barre de progression.
   etapeIngestion  String?
   progressPct     Int      @default(0)
-  erreurMessage   String?
+  erreurMessage   String?  @db.Text
   cheminPdfCours  String
   // Optionnel : certains cours incluent l'examen dans le PDF du cours (pas de fichier séparé).
   cheminPdfExamen String?
@@ -46,10 +55,10 @@ model Section {
   id         String  @id @default(cuid())
   courseId   String
   course     Course  @relation(fields: [courseId], references: [id], onDelete: Cascade)
-  titre      String
+  titre      String  @db.Text
   niveau     Int     // profondeur de titre (1 = chapitre, 2 = sous-section…)
   ordre      Int     // ordre d'apparition dans le document
-  texte      String
+  texte      String  @db.LongText
   // type : notion | tableau | diathese | meta
   type       String  @default("notion")
   // importance : essentiel | utile | secondaire (renseigné en M2)
@@ -67,8 +76,8 @@ model StudyUnit {
   course        Course  @relation(fields: [courseId], references: [id], onDelete: Cascade)
   ordre         Int
   jourCible     Int
-  titre         String
-  sectionsLiees String  @default("[]") // JSON: string[] d'ids de Section
+  titre         String  @db.Text
+  sectionsLiees String  @default("[]") @db.Text // JSON: string[] d'ids de Section
 
   fiche    Fiche?
   progress Progress?
@@ -82,8 +91,8 @@ model Fiche {
   id              String    @id @default(cuid())
   studyUnitId     String    @unique
   studyUnit       StudyUnit @relation(fields: [studyUnitId], references: [id], onDelete: Cascade)
-  contenuMarkdown String
-  notionsCles     String    @default("[]") // JSON: string[]
+  contenuMarkdown String    @db.LongText
+  notionsCles     String    @default("[]") @db.Text // JSON: string[]
 }
 
 /// Une question (quiz de vérif, examen blanc, ou examen officiel).
@@ -93,10 +102,10 @@ model Question {
   course           Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
   // type : quiz_verif | examen_blanc | examen_officiel
   type             String
-  enonce           String
-  options          String   // JSON: { key: "A"|"B"|"C"|"D", text: string }[]
+  enonce           String   @db.Text
+  options          String   @db.Text // JSON: { key: "A"|"B"|"C"|"D", text: string }[]
   bonneReponse     String?  // "A" | "B" | "C" | "D" (déduite par l'IA en M2)
-  justification    String?
+  justification    String?  @db.Text
   sectionSourceId  String?
   sectionSource    Section? @relation(fields: [sectionSourceId], references: [id], onDelete: SetNull)
   // statutValidation : en_attente | valide | rejete
@@ -124,7 +133,7 @@ model ReviewItem {
   question          Question  @relation(fields: [questionId], references: [id], onDelete: Cascade)
   boite             Int       @default(1)
   prochaineEcheance DateTime?
-  historique        String    @default("[]") // JSON: { date: string, correct: boolean }[]
+  historique        String    @default("[]") @db.Text // JSON: { date: string, correct: boolean }[]
 }
 
 /// Corrigé officiel importé après la remise (M5) — vérité de référence.
@@ -132,8 +141,8 @@ model OfficialKey {
   id                String   @id @default(cuid())
   courseId          String   @unique
   course            Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
-  reponsesImportees String   // JSON: { question: number, reponse: string }[]
-  ecartsDetectes    String   @default("[]") // JSON
+  reponsesImportees String   @db.Text // JSON: { question: number, reponse: string }[]
+  ecartsDetectes    String   @default("[]") @db.Text // JSON
   importeLe         DateTime @default(now())
 }
 
@@ -144,14 +153,14 @@ model QaMessage {
   course         Course     @relation(fields: [courseId], references: [id], onDelete: Cascade)
   studyUnitId    String?
   studyUnit      StudyUnit? @relation(fields: [studyUnitId], references: [id], onDelete: SetNull)
-  question       String
-  reponse        String
+  question       String     @db.Text
+  reponse        String     @db.Text
   // source : cours | exterieur | mixte
   source         String
   // mode : cours | cours_web
   mode           String     @default("cours")
-  sectionsCitees String     @default("[]") // JSON: { id: string, titre: string }[]
-  sourcesWeb     String     @default("[]") // JSON: { title: string | null, url: string }[]
+  sectionsCitees String     @default("[]") @db.Text // JSON: { id: string, titre: string }[]
+  sourcesWeb     String     @default("[]") @db.Text // JSON: { title: string | null, url: string }[]
   createdAt      DateTime   @default(now())
 
   @@index([courseId, createdAt])
