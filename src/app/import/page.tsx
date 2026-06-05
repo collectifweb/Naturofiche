@@ -66,14 +66,17 @@ export default function ImportPage() {
   }
 
   return (
-    <main className="mx-auto flex w-full max-w-md flex-1 flex-col gap-6 px-4 py-8">
-      <div className="space-y-1">
-        <Link href="/" className="text-sm text-muted-foreground hover:underline">
+    <main className="mx-auto flex w-full max-w-md flex-1 flex-col gap-7 px-5 py-9">
+      <div className="space-y-1.5">
+        <Link
+          href="/"
+          className="inline-flex text-[0.8125rem] text-muted-foreground transition-colors hover:text-foreground"
+        >
           ← Accueil
         </Link>
-        <h1 className="text-2xl font-semibold tracking-tight">Importer un cours</h1>
-        <p className="text-sm text-muted-foreground">
-          Dépose le PDF du cours et celui de l&apos;examen, puis choisis le délai.
+        <h1 className="font-heading text-2xl font-semibold tracking-tight">Importer un cours</h1>
+        <p className="text-[0.9375rem] text-muted-foreground">
+          Dépose le PDF du cours (et son examen s&apos;il est à part), puis choisis le délai.
         </p>
       </div>
 
@@ -105,11 +108,23 @@ export default function ImportPage() {
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-2">
                 <Label htmlFor="titre">Titre (optionnel)</Label>
-                <Input id="titre" name="titre" type="text" placeholder="L'oligothérapie" />
+                <Input
+                  id="titre"
+                  name="titre"
+                  type="text"
+                  placeholder="L'oligothérapie"
+                  className="h-10 text-base"
+                />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="code">Code (optionnel)</Label>
-                <Input id="code" name="code" type="text" placeholder="354" />
+                <Input
+                  id="code"
+                  name="code"
+                  type="text"
+                  placeholder="354"
+                  className="h-10 text-base"
+                />
               </div>
             </div>
 
@@ -123,10 +138,11 @@ export default function ImportPage() {
                 max={365}
                 defaultValue={30}
                 required
+                className="h-10 text-base"
               />
             </div>
 
-            <Button type="submit" className="w-full" disabled={loading}>
+            <Button type="submit" size="lg" className="mt-1 w-full" disabled={loading}>
               {loading ? ETAPES[etape] : "Lancer l'import"}
             </Button>
 

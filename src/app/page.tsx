@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Leaf } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { buttonVariants } from "@/components/ui/button";
 import {
@@ -20,51 +21,60 @@ export default async function Home() {
   });
 
   return (
-    <main className="mx-auto flex w-full max-w-md flex-1 flex-col gap-6 px-4 py-8">
-      <header className="space-y-1">
-        <h1 className="text-2xl font-semibold tracking-tight">NaturoFiche</h1>
-        <p className="text-sm text-muted-foreground">
+    <main className="mx-auto flex w-full max-w-md flex-1 flex-col gap-7 px-5 py-9">
+      <header className="space-y-1.5">
+        <div className="flex items-center gap-2">
+          <Leaf className="size-6 text-primary" aria-hidden />
+          <h1 className="font-heading text-2xl font-semibold tracking-tight">NaturoFiche</h1>
+        </div>
+        <p className="text-[0.9375rem] text-muted-foreground">
           Ton parcours d&apos;étude — l&apos;essentiel pour réussir l&apos;examen.
         </p>
       </header>
 
       {!course ? (
-        <Card>
+        <Card className="py-5">
           <CardHeader>
-            <CardTitle>Aucun cours actif</CardTitle>
+            <CardTitle className="text-lg">Aucun cours actif</CardTitle>
             <CardDescription>
               Importe un cours et son examen pour générer ton parcours d&apos;étude.
             </CardDescription>
           </CardHeader>
           <CardFooter>
-            <Link href="/import" className={buttonVariants({ className: "w-full" })}>
+            <Link href="/import" className={buttonVariants({ size: "lg", className: "w-full" })}>
               Importer un cours
             </Link>
           </CardFooter>
         </Card>
       ) : (
-        <Card>
+        <Card className="py-5">
           <CardHeader>
-            <CardTitle>{course.title}</CardTitle>
-            <CardDescription>
-              {course.code ? `Cours ${course.code} · ` : ""}
-              Délai : {course.delaiJours} jours · Statut : {course.statut}
+            <CardTitle className="text-lg leading-snug">{course.title}</CardTitle>
+            <CardDescription className="flex flex-wrap items-center gap-x-2 gap-y-1">
+              {course.code && (
+                <span className="font-mono text-foreground">F-{course.code}</span>
+              )}
+              <span>Délai {course.delaiJours} j</span>
+              <span aria-hidden>·</span>
+              <span>{course.statut}</span>
             </CardDescription>
           </CardHeader>
           <CardContent className="text-sm text-muted-foreground">
-            {course._count.sections} sections · {course._count.questions} questions
+            <span className="font-medium text-foreground">{course._count.sections}</span> sections
+            {" · "}
+            <span className="font-medium text-foreground">{course._count.questions}</span> questions
             d&apos;examen
           </CardContent>
-          <CardFooter className="flex flex-col gap-2">
+          <CardFooter className="flex flex-col gap-2.5">
             <Link
               href={`/course/${course.id}`}
-              className={buttonVariants({ className: "w-full" })}
+              className={buttonVariants({ size: "lg", className: "w-full" })}
             >
               Voir le cours
             </Link>
             <Link
               href="/import"
-              className={buttonVariants({ variant: "outline", className: "w-full" })}
+              className={buttonVariants({ variant: "ghost", size: "lg", className: "w-full" })}
             >
               Importer un autre cours
             </Link>

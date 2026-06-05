@@ -1,15 +1,9 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { Badge } from "@/components/ui/badge";
+import { Chip, type ChipVariant } from "@/components/ui/chip";
 import { buttonVariants } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 export const dynamic = "force-dynamic";
 
@@ -20,7 +14,11 @@ const TYPE_LABEL: Record<string, string> = {
   meta: "Méta",
 };
 
-function excerpt(texte: string, max = 220): string {
+function chipVariant(type: string): ChipVariant {
+  return type === "meta" ? "secondaire" : "utile";
+}
+
+function excerpt(texte: string, max = 240): string {
   const clean = texte.replace(/\s+/g, " ").trim();
   return clean.length > max ? clean.slice(0, max) + "…" : clean;
 }
@@ -44,30 +42,39 @@ export default async function CoursePage({
   const matiere = course.sections.filter((s) => s.type !== "meta").length;
 
   return (
-    <main className="mx-auto flex w-full max-w-2xl flex-1 flex-col gap-6 px-4 py-8">
-      <div className="space-y-1">
-        <Link href="/" className="text-sm text-muted-foreground hover:underline">
+    <main className="mx-auto flex w-full max-w-2xl flex-1 flex-col gap-6 px-5 py-9">
+      <div className="space-y-1.5">
+        <Link
+          href="/"
+          className="inline-flex text-[0.8125rem] text-muted-foreground transition-colors hover:text-foreground"
+        >
           ← Accueil
         </Link>
-        <h1 className="text-2xl font-semibold tracking-tight">{course.title}</h1>
-        <p className="text-sm text-muted-foreground">
-          {course.code ? `Cours ${course.code} · ` : ""}Délai {course.delaiJours} jours ·
-          Statut {course.statut}
+        <h1 className="font-heading text-2xl font-semibold tracking-tight">{course.title}</h1>
+        <p className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[0.9375rem] text-muted-foreground">
+          {course.code && <span className="font-mono text-foreground">F-{course.code}</span>}
+          <span>Délai {course.delaiJours} j</span>
+          <span aria-hidden>·</span>
+          <span>{course.statut}</span>
         </p>
       </div>
 
-      <Card>
+      <Card className="gap-2 py-4">
         <CardHeader>
-          <CardTitle className="text-base">Découpage provisoire</CardTitle>
-          <CardDescription>
-            {course._count.sections} sections ({matiere} de matière) ·{" "}
-            {course._count.questions} questions d&apos;examen détectées. Découpage
-            structurel brut — la hiérarchisation par IA arrive en M2.
-          </CardDescription>
+          <CardTitle className="text-[0.8125rem] font-medium tracking-[0.01em] text-muted-foreground uppercase">
+            Découpage provisoire
+          </CardTitle>
         </CardHeader>
+        <CardContent className="text-sm text-muted-foreground">
+          <span className="font-medium text-foreground">{course._count.sections}</span> sections (
+          {matiere} de matière) ·{" "}
+          <span className="font-medium text-foreground">{course._count.questions}</span> questions
+          d&apos;examen détectées. Découpage structurel brut — la hiérarchisation par IA arrive
+          en M2.
+        </CardContent>
       </Card>
 
-      <section className="space-y-3">
+      <section className="space-y-2.5">
         {course.sections.length === 0 ? (
           <p className="text-sm text-muted-foreground">Aucune section extraite.</p>
         ) : (
@@ -75,22 +82,22 @@ export default async function CoursePage({
             <Card
               key={s.id}
               data-type={s.type}
-              className={s.type === "meta" ? "opacity-60" : undefined}
-              style={{ marginLeft: `${Math.min(s.niveau - 1, 3) * 12}px` }}
+              className={s.type === "meta" ? "gap-2 py-4 opacity-55" : "gap-2 py-4"}
+              style={{ marginLeft: `${Math.min(s.niveau - 1, 3) * 14}px` }}
             >
-              <CardHeader className="gap-1">
+              <CardHeader>
                 <div className="flex items-start justify-between gap-3">
-                  <CardTitle className="text-sm font-medium leading-snug">
+                  <CardTitle className="text-[0.95rem] leading-snug font-medium">
                     {s.titre}
                   </CardTitle>
-                  <Badge variant={s.type === "tableau" ? "default" : "secondary"}>
-                    {TYPE_LABEL[s.type] ?? s.type}
-                  </Badge>
+                  <Chip variant={chipVariant(s.type)}>{TYPE_LABEL[s.type] ?? s.type}</Chip>
                 </div>
               </CardHeader>
               {s.texte.trim().length > 0 && (
-                <CardContent className="pt-0 text-sm text-muted-foreground">
-                  {excerpt(s.texte)}
+                <CardContent>
+                  <p className="font-serif text-[0.9375rem] leading-relaxed text-foreground/80">
+                    {excerpt(s.texte)}
+                  </p>
                 </CardContent>
               )}
             </Card>
@@ -98,10 +105,10 @@ export default async function CoursePage({
         )}
       </section>
 
-      <div className="pt-2">
+      <div className="pt-1">
         <Link
           href="/import"
-          className={buttonVariants({ variant: "outline", className: "w-full" })}
+          className={buttonVariants({ variant: "outline", size: "lg", className: "w-full" })}
         >
           Importer un autre cours
         </Link>
