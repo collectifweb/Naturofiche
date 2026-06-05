@@ -12,10 +12,11 @@ Suivi des jalons : [`tasks/todo.md`](./tasks/todo.md).
 ## Stack
 
 - **Next.js 16** (App Router) + **React 19** + **TypeScript**
-- **Tailwind v4** + **shadcn/ui**
+- **Tailwind v4** + **shadcn/ui** (base-nova)
+- **Design system maison** (thème clair) : papier chaud + vert herbacé, polices Geist / Source Serif 4 — voir [DESIGN.md](./DESIGN.md) et [PRODUCT.md](./PRODUCT.md)
 - **Prisma 6** + **SQLite** (fichier local `prisma/dev.db`)
-- **API Anthropic** (`@anthropic-ai/sdk`), modèles configurables via `.env`
-- Extraction PDF : **pdf-parse** (texte sélectionnable, pas d'OCR)
+- **API Anthropic** (`@anthropic-ai/sdk`), modèles configurables via `.env` (branchée en M2)
+- Extraction PDF : **pdf-parse** (v1, texte sélectionnable, pas d'OCR)
 - PWA installable (manifest + service worker), pensée pour le tunnel Cloudflare
 
 ## Prérequis
@@ -58,20 +59,26 @@ npm run build && npm run start
 ```
 src/
   app/
+    globals.css              # tokens du design system (palette oklch, polices)
+    layout.tsx               # shell + polices Geist/Source Serif + PWA + toaster
     page.tsx                 # accueil (cours actif)
-    import/page.tsx          # écran d'import (2 PDF + délai)
+    import/page.tsx          # écran d'import (PDF cours + examen OPTIONNEL + délai)
     course/[id]/page.tsx     # sections découpées + questions détectées
     login/page.tsx           # garde d'accès optionnelle
     api/import/route.ts      # upload → extraction → découpage → DB
     api/login/route.ts       # pose le cookie d'accès
+  components/
+    ui/*                     # shadcn (button, card, chip, input…) — chip = signature
+    sw-register.tsx          # enregistrement du service worker (prod)
   lib/
     prisma.ts                # singleton Prisma
     pdf.ts                   # extraction de texte
-    sectioning.ts            # découpage structurel provisoire (M1)
+    sectioning.ts            # stripBoilerplate + découpage provisoire (M1)
     exam-parse.ts            # parsing QCM léger (M1)
     anthropic.ts             # client Claude (lazy) + config modèles
     auth.ts                  # token de la garde d'accès
-  middleware.ts              # gate optionnelle si ACCESS_PASSWORD
+    paths.ts                 # chemins de stockage des PDF
+  proxy.ts                   # gate optionnelle si ACCESS_PASSWORD (Next 16)
 prisma/schema.prisma         # modèle de données complet
 public/                      # manifest, service worker, icônes
 storage/                     # PDF importés (gitignoré)
@@ -80,9 +87,10 @@ docs/                        # PDF de cours de test (gitignorés)
 
 ## État
 
-**M1 (socle technique) livré** : import, extraction, découpage structurel provisoire,
-affichage des sections, PWA, garde d'accès. Le découpage/hiérarchisation par IA et la
-déduction des réponses arrivent en **M2**. Voir [`tasks/todo.md`](./tasks/todo.md).
+**M1 (socle technique) livré et validé**, design system appliqué : import (examen
+optionnel), extraction, découpage structurel provisoire, affichage des sections, PWA,
+garde d'accès. Le découpage/hiérarchisation par IA et la déduction des réponses arrivent
+en **M2**. Voir [`tasks/todo.md`](./tasks/todo.md).
 
 > ⚠️ Le découpage de M1 est **volontairement heuristique** (par titres / longueur),
 > juste pour afficher des sections. La vraie découpe adaptative et la hiérarchisation

@@ -8,18 +8,18 @@ Cadence : **jalon par jalon**, plan validé avant chaque implémentation.
 
 ---
 
-## M1 — Socle technique ✅ (en cours de validation)
+## M1 — Socle technique ✅ livré et validé
 
 Boucle livrée : **import → extraction texte → découpage structurel provisoire → affichage des sections.**
 
 - [x] Scaffold Next.js 16 (App Router, TS, Tailwind v4, `src/`) — Node 20 requis
-- [x] shadcn/ui (style base-nova) + composants : button, card, input, label, badge, progress, sonner, separator
+- [x] shadcn/ui (style base-nova) + composants : button, card, input, label, badge, progress, sonner, separator, chip
 - [x] Prisma 6 + SQLite : schéma **complet** (Course, Section, StudyUnit, Fiche, Question, Progress, ReviewItem, OfficialKey, ApiUsageLog) + migration `init` + singleton `src/lib/prisma.ts`
 - [x] Libs serveur : `pdf.ts` (extraction), `sectioning.ts` (découpe heuristique), `exam-parse.ts` (QCM), `anthropic.ts` (client lazy + config modèles, non appelé en M1)
 - [x] Page `/import` (mobile-first) + API `POST /api/import` (upload → storage local → extraction → sections + questions)
 - [x] Page `/course/[id]` (sections + types + nb questions) ; home `/` mono-cours
 - [x] PWA : `manifest.webmanifest`, icônes (feuille verte) 192/512/maskable + apple-touch, `sw.js` (network-first), enregistrement en prod
-- [x] Garde d'accès optionnelle : `middleware.ts` + `/login` + `/api/login` (actif si `ACCESS_PASSWORD`)
+- [x] Garde d'accès optionnelle : `src/proxy.ts` (Next 16) + `/login` + `/api/login` (actif si `ACCESS_PASSWORD`)
 - [x] Docs : ce fichier, `lessons.md`, `README.md`, `CLAUDE.md` rempli, `.env.example`, `.gitignore`
 - [x] `npm run build` vert (Next 16 / Turbopack)
 - [x] Test bout-en-bout sur `docs/F-354.pdf` + `docs/F-exam-354.pdf` (44 sections, **20** questions)
@@ -51,6 +51,19 @@ Testé de bout en bout sur le cours **354 « L'oligothérapie »** (108 p.) + so
 essentiel/utile/secondaire — tout cela est le cœur de **M2**.
 
 **Prérequis machine** : Node 20+ (Next 16). Le serveur permanent doit tourner sous Node 20.
+
+---
+
+## Post-M1 (avant M2) ✅
+
+- [x] **PDF d'examen optionnel** à l'import : si aucun fichier d'examen, on cherche les QCM dans le PDF
+  du cours (repli) ; `cheminPdfExamen` rendu nullable (migration `exam_optional`). Testé : cours seul → 200,
+  cours + examen → 20 questions (pas de régression).
+- [x] **Fix hydratation** : `suppressHydrationWarning` sur `<html>` (attributs injectés par extensions navigateur).
+- [x] **Passe design** : design system [DESIGN.md](../DESIGN.md) / [PRODUCT.md](../PRODUCT.md) appliqué — tokens
+  `oklch` papier chaud + vert herbacé dans `globals.css`, polices Geist / Source Serif 4, composant `Chip`
+  (essentiel/utile/secondaire), thème **clair only**, restyle des 3 écrans. `tsc` + `build` verts.
+- [x] **Doc-sync** : README / CLAUDE / tasks réconciliés avec le code avant compaction.
 
 ---
 

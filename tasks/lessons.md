@@ -58,6 +58,17 @@ Patterns appris pendant le développement, pour éviter de répéter les erreurs
   copyright `©CMDQ` — du **boilerplate à retirer avant le découpage** (sinon pris pour des titres).
   Vrais titres : `CHAPITRE N`, `Introduction`, `Objectifs`, exercices numérotés `N. …`.
 
+## Design / CSS (Tailwind v4 + shadcn base-nova)
+
+- **lightningcss convertit `oklch()` en `#hex` + `lab()`** dans le CSS compilé. → inutile de grep les
+  valeurs `oklch` dans le build pour vérifier la palette : chercher les hex (`--primary:#007838`) ou `lab()`.
+- **Mapping de police du scaffold cassé** : le `@theme` généré avait `--font-sans: var(--font-sans)` (auto-
+  référence dans le vide) alors que le layout définit `--font-geist-sans`. Corrigé : `--font-sans:
+  var(--font-geist-sans)`, `--font-serif: var(--font-source-serif)`. Vérifier ce mapping après un init shadcn.
+- **La `Card` base-nova colle déjà à un design « plat »** : `ring-1 ring-foreground/10` (= liseré 1px) + pied
+  `bg-muted/50`, **aucune ombre**. Le simple swap des tokens `:root` warm-ifie tout sans toucher aux composants.
+- **Thème clair only** : ne pas ajouter de classe `.dark` ni next-themes toggle ; poser `color-scheme: light`.
+
 ## Architecture
 
 - SQLite via Prisma : **pas de tableaux ni d'enums natifs** → listes en `String` JSON, enums en `String`

@@ -12,9 +12,10 @@ Mono-utilisateur, **un seul cours actif** à la fois, 100 % local derrière un t
 
 - **Next.js 16** (App Router, RSC) + **React 19** + **TypeScript** strict
 - **Prisma 6** + **SQLite** (`prisma/dev.db`) — fichier local
-- **Tailwind v4** (config CSS dans [src/app/globals.css](src/app/globals.css), **pas** de `tailwind.config`) + **shadcn/ui** (style `base-nova`, `@base-ui/react`, icônes lucide, toasts sonner, thèmes next-themes)
-- **pdf-parse** — extraction texte (PDF au texte sélectionnable, pas d'OCR)
-- **@anthropic-ai/sdk** — ingestion IA
+- **Tailwind v4** (config CSS dans [src/app/globals.css](src/app/globals.css), **pas** de `tailwind.config`) + **shadcn/ui** (style `base-nova`, `@base-ui/react`, icônes lucide, toasts sonner)
+- **Design system appliqué** (thème **clair only**) : papier chaud + **un seul** vert herbacé ; polices **Geist** (UI) / **Source Serif 4** (lecture des fiches) / **Geist Mono**. Tokens `oklch` dans [globals.css](src/app/globals.css), composant signature [Chip](src/components/ui/chip.tsx). Source de vérité : [DESIGN.md](DESIGN.md) + [PRODUCT.md](PRODUCT.md).
+- **pdf-parse** (v1 épinglé) — extraction texte (PDF au texte sélectionnable, pas d'OCR)
+- **@anthropic-ai/sdk** — ingestion IA (client prêt, branché en M2)
 - Alias d'import : `@/*` → `./src/*` ; util `cn()` dans [src/lib/utils.ts](src/lib/utils.ts)
 
 ## Commandes
@@ -30,11 +31,11 @@ npx prisma generate                   # régénérer le client après edit du sc
 npx prisma studio                     # explorer la DB
 ```
 
-Pas (encore) de framework de test. Note env : si le hook `rtk` bloque un `npx`, relancer via `rtk proxy npx …`.
+**Node 20+ requis** (Next 16) : `nvm use 20` ou `export PATH="$HOME/.nvm/versions/node/v20.20.2/bin:$PATH"`. Pas (encore) de framework de test. Note env : si le hook `rtk` bloque un `npx`, relancer via `rtk proxy npx …`.
 
 ## État d'avancement (jalons)
 
-Projet en **M1** (socle technique) — **livré, en cours de validation**. Sont construits : accueil mono-cours ([src/app/page.tsx](src/app/page.tsx)), écran d'import + API ([src/app/import/page.tsx](src/app/import/page.tsx), [src/app/api/import/route.ts](src/app/api/import/route.ts)), page cours ([src/app/course/[id]/page.tsx](src/app/course/[id]/page.tsx)), PWA (manifest + `public/sw.js` + icônes), garde d'accès optionnelle (middleware + `/login`). Reste à valider : `npm run build` vert + test bout-en-bout sur les vrais PDF de [docs/](docs/).
+**M1 (socle technique) livré ET validé**, design system appliqué. Construit : accueil mono-cours ([src/app/page.tsx](src/app/page.tsx)), écran d'import + API ([src/app/import/page.tsx](src/app/import/page.tsx), [src/app/api/import/route.ts](src/app/api/import/route.ts)), page cours ([src/app/course/[id]/page.tsx](src/app/course/[id]/page.tsx)), PWA (manifest + `public/sw.js` + icônes), garde d'accès optionnelle ([src/proxy.ts](src/proxy.ts) — convention Next 16, **pas** `middleware.ts` — + `/login`). Validé bout-en-bout sur [docs/](docs/) F-354 + son examen : **44 sections, 20 questions**, `npm run build` vert. Ajouts post-M1 : **PDF d'examen optionnel** (repli sur le PDF du cours s'il l'inclut → `cheminPdfExamen` nullable) et **design system** ([DESIGN.md](DESIGN.md)) appliqué aux 3 écrans. **Prochaine étape : M2** (en attente du plan validé).
 
 - **M1** socle : Next/Prisma/SQLite, écran d'import, extraction PDF, affichage des sections.
 - **M2** pipeline d'ingestion IA (correspondance examen↔sections, déduction des réponses, génération fiches/quiz) + agent de vérification.
@@ -56,8 +57,8 @@ PDF cours + examen → extraction texte → découpage en sections → correspon
 - `ApiUsageLog` journalise chaque appel (phase, modèle, tokens).
 
 ### Heuristiques M1 — PROVISOIRES, remplacées par l'IA en M2
-- [src/lib/sectioning.ts](src/lib/sectioning.ts) : découpe structurelle par titres (numérotés, mots-clés, CAPS), repli par longueur (~2500 car.). Classe en `notion | tableau | diathese | meta`.
-- [src/lib/exam-parse.ts](src/lib/exam-parse.ts) : parsing QCM best-effort par regex (questions 1–40, options A/B/C/D).
+- [src/lib/sectioning.ts](src/lib/sectioning.ts) : `stripBoilerplate()` (retire pieds/en-têtes CMDQ récurrents) **puis** découpe par titres (numérotés, mots-clés, CAPS), repli par longueur (~2500 car.). Classe en `notion | tableau | diathese | meta`.
+- [src/lib/exam-parse.ts](src/lib/exam-parse.ts) : parsing QCM best-effort — format CMDQ `Question N` + options puces `• A` (repli générique `1.` / `A)`). Source : examen séparé, **ou le PDF du cours** si l'examen y est inclus.
 - Ne pas sur-investir : placeholders pour « afficher quelque chose ». La vraie découpe adaptative et la hiérarchisation (essentiel / utile / secondaire) sont un travail IA prévu en M2.
 
 ### Données — [prisma/schema.prisma](prisma/schema.prisma)
