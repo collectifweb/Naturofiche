@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { rechercherSections, repondreQuestion } from "@/lib/qa";
+import { rechercherSections, repondreQuestion, repondreQuestionAvecWeb } from "@/lib/qa";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -25,6 +25,8 @@ export async function POST(
   if (question.length < 3) {
     return NextResponse.json({ error: "Question trop courte." }, { status: 400 });
   }
+  const mode =
+    (body as { mode?: unknown }).mode === "cours_web" ? "cours_web" : "cours";
 
   const course = await prisma.course.findUnique({
     where: { id },
@@ -39,7 +41,10 @@ export async function POST(
     orderBy: { ordre: "asc" },
   });
   const retrouvees = rechercherSections(question, sections);
-  const reponse = await repondreQuestion(id, question, retrouvees);
+  const reponse =
+    mode === "cours_web"
+      ? await repondreQuestionAvecWeb(id, question, retrouvees)
+      : await repondreQuestion(id, question, retrouvees);
 
   const sectionsCitees = reponse.sectionsCitees
     .filter((index) => Number.isInteger(index) && index >= 0 && index < retrouvees.length)
@@ -51,5 +56,7 @@ export async function POST(
     reponse: reponse.reponse,
     source: reponse.source,
     sections: sectionsCitees,
+    sourcesWeb: "sourcesWeb" in reponse ? reponse.sourcesWeb : [],
+    mode,
   });
 }

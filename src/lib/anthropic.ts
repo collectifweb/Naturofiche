@@ -89,7 +89,7 @@ export async function runStructured<T>({
   return block.input as T;
 }
 
-async function logUsage(
+export async function logUsage(
   courseId: string | null,
   phase: ApiPhase,
   model: string,

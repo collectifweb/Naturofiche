@@ -163,3 +163,23 @@ Plan d'implémentation à valider avant de coder :
 - **Validation technique** : `npm run lint`, `npx tsc --noEmit`, `npm run build` verts sous Node 20. Le build a nécessité l'accès réseau pour `next/font` (polices Google), puis a compilé toutes les routes M5.
 
 **Limites assumées M5** : Q&A sans historique persistant et sans embeddings (retrieval lexical), pas de web live (repli sur connaissances du modèle), pas d'estimation de coût affichée pour éviter des prix obsolètes.
+
+## M5bis — Q&A avec recherche web ✅ livré
+
+Objectif : enrichir le Q&A sans contaminer le mode d'étude par défaut.
+
+- [x] **Mode explicite** : garder `cours seulement` par défaut ; ajouter `cours + web` dans l'UI Q&A.
+- [x] **Serveur uniquement** : ajouter un appel Anthropic avec outil serveur `web_search_20250305`, `max_uses` limité, journalisé en phase `qa`.
+- [x] **Sources visibles** : afficher les sections du cours citées + les sources web retournées (titre/URL si disponibles).
+- [x] **Usage** : la page `/usage` doit refléter l'appel `qa` web via `ApiUsageLog`.
+- [x] **Validation** : lint, `tsc --noEmit`, build, smoke test live F-354.
+- [x] **Docs + git** : mettre à jour README/CLAUDE/lessons/todo, commit local sans push automatique.
+
+### Review M5bis (vérif sur F-354)
+- **Mode explicite** : `/course/cmq0xcvix0000osbydme0whft/qa` garde `Cours seulement` par défaut et propose `Cours + web` comme choix volontaire.
+- **Web search** : `POST /api/course/cmq0xcvix0000osbydme0whft/qa` avec `mode="cours_web"` et « Le zinc est-il encore recommandé aujourd'hui pour soutenir l'immunité ? » → réponse `source="mixte"`, sections cours citées (Application symptomatique, Zinc, Cuivre-Zinc) + sources web NIH/PMC/MSD. Latence observée après limitation : ~7 s.
+- **Garde coût/latence** : outil serveur `web_search_20250305`, `max_uses=1`, timeout SDK 30 s, domaines autorisés santé/institutionnels (`nih.gov`, `ods.od.nih.gov`, `medlineplus.gov`, `msdmanuals.com`, etc.).
+- **Usage API** : Q&A total sur F-354 = 3 appels / 31 789 in / 1 258 out ; total cours = 30 appels / 310 850 in / 75 089 out.
+- **Validation technique** : `npm run lint`, `npx tsc --noEmit`, `npm run build` verts sous Node 20.
+
+**Limites assumées M5bis** : pas de persistance d'historique web, pas de coût web dédié en DB (le schéma ne stocke que tokens/appels par phase), et sources web contraintes à des domaines fiables plutôt qu'à tout le web.

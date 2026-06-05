@@ -166,3 +166,16 @@ Patterns appris pendant le développement, pour éviter de répéter les erreurs
   pas avant.
 - **Usage API sans coût mensonger.** Agréger `ApiUsageLog` par `phase`/`model` avec appels et tokens suffit.
   Ne pas afficher de coût si les prix modèles ne sont pas maintenus comme source fiable.
+
+## Q&A avec web search (M5bis)
+
+- **Le web doit rester explicite.** Pour une app d'étude, `cours seulement` est le mode par défaut : c'est la
+  vérité attendue à l'examen. `cours + web` sert à vérifier/compléter, pas à remplacer le cours.
+- **Web search = latence et coût à borner.** Utiliser `web_search_20250305` avec `max_uses=1` et un timeout SDK
+  (30 s). Un premier test non borné a dépassé 2 min ; après limitation, le smoke test F-354 a répondu en ~7 s.
+- **Santé : contraindre les domaines.** Sans garde, le web search peut citer des sites commerciaux. Pour les
+  questions santé/nutrition, préférer `allowed_domains` institutionnels ou médicaux (`nih.gov`,
+  `ods.od.nih.gov`, `medlineplus.gov`, `msdmanuals.com`, etc.).
+- **Ne pas afficher les blocs de pré-recherche.** Les réponses web peuvent commencer par « je vais chercher ».
+  Dans le rendu final, ignorer les textes avant le premier `web_search_tool_result` quand il existe, et garder
+  les blocs texte qui suivent avec leurs citations.

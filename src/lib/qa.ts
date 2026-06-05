@@ -1,5 +1,6 @@
 import type { Section } from "@prisma/client";
-import { MODELS, runStructured } from "@/lib/anthropic";
+import type Anthropic from "@anthropic-ai/sdk";
+import { getAnthropic, logUsage, MODELS, runStructured } from "@/lib/anthropic";
 
 type QaSection = Pick<Section, "id" | "titre" | "texte" | "type" | "ordre">;
 
@@ -9,6 +10,15 @@ export interface QaResponse {
   reponse: string;
   source: QaSource;
   sectionsCitees: number[];
+}
+
+export interface WebSource {
+  title: string | null;
+  url: string;
+}
+
+export interface QaWebResponse extends QaResponse {
+  sourcesWeb: WebSource[];
 }
 
 const STOPWORDS = new Set([
@@ -126,4 +136,150 @@ export async function repondreQuestion(
     schema: QA_SCHEMA,
     maxTokens: 1200,
   });
+}
+
+function contexteSections(sections: QaSection[]): string {
+  return sections.length > 0
+    ? sections
+        .map((s, index) => `#${index} — ${s.titre}\n${extrait(s.texte)}`)
+        .join("\n\n---\n\n")
+    : "Aucun extrait pertinent n'a ete retrouve dans le cours.";
+}
+
+function texteEtSources(
+  content: Anthropic.Messages.ContentBlock[],
+): { texte: string; sourcesWeb: WebSource[] } {
+  const textes: string[] = [];
+  const textesApresRecherche: string[] = [];
+  const sources = new Map<string, WebSource>();
+  let aVuRecherche = false;
+
+  for (const block of content) {
+    if (block.type === "web_search_tool_result") {
+      aVuRecherche = true;
+      continue;
+    }
+    if (block.type === "text") {
+      textes.push(block.text);
+      if (aVuRecherche) textesApresRecherche.push(block.text);
+      for (const citation of block.citations ?? []) {
+        if (citation.type === "web_search_result_location") {
+          sources.set(citation.url, {
+            title: citation.title,
+            url: citation.url,
+          });
+        }
+      }
+    }
+  }
+
+  return {
+    texte: (textesApresRecherche.length > 0 ? textesApresRecherche : textes).join("\n\n").trim(),
+    sourcesWeb: Array.from(sources.values()),
+  };
+}
+
+function sectionsCiteesDepuisTexte(texte: string, sections: QaSection[]): number[] {
+  const citees = new Set<number>();
+  for (let i = 0; i < sections.length; i++) {
+    if (texte.includes(`#${i}`) || texte.includes(sections[i].titre)) {
+      citees.add(i);
+    }
+  }
+  return Array.from(citees.values());
+}
+
+async function createWebSearchMessage({
+  model,
+  system,
+  prompt,
+  maxTokens,
+  messages,
+}: {
+  model: string;
+  system: string;
+  prompt: string;
+  maxTokens: number;
+  messages?: Anthropic.Messages.MessageParam[];
+}) {
+  const anthropic = getAnthropic();
+  return anthropic.messages.create(
+    {
+      model,
+      max_tokens: maxTokens,
+      system,
+      messages: messages ?? [{ role: "user", content: prompt }],
+      tools: [
+        {
+          type: "web_search_20250305",
+          name: "web_search",
+          max_uses: 1,
+          allowed_domains: [
+            "ods.od.nih.gov",
+            "medlineplus.gov",
+            "nih.gov",
+            "who.int",
+            "canada.ca",
+            "inspq.qc.ca",
+            "has-sante.fr",
+            "efsa.europa.eu",
+            "msdmanuals.com",
+            "mayoclinic.org",
+          ],
+        },
+      ],
+    },
+    { timeout: 30_000 },
+  );
+}
+
+export async function repondreQuestionAvecWeb(
+  courseId: string,
+  question: string,
+  sections: QaSection[],
+): Promise<QaWebResponse> {
+  const model = MODELS.qa;
+  const prompt = `Question de l'etudiant :\n${question}\n\nExtraits du cours retrouves :\n${contexteSections(
+    sections,
+  )}\n\nConsigne : utilise d'abord les extraits du cours. Utilise la recherche web seulement pour verifier ou completer ce qui n'est pas suffisamment couvert par le cours. Dans ta reponse, indique explicitement si l'information vient du cours, du web, ou des deux. Quand tu utilises un extrait du cours, mentionne son index (#0, #1, etc.).`;
+  const system =
+    "Tu es un tuteur d'etude. Reponds en francais de facon concise et utile. Priorite au cours fourni : ne contredis pas le cours pour la preparation d'examen sans le signaler. Avec la recherche web, cite uniquement des informations supportees par les resultats web. N'invente pas de source. Si la reponse combine cours et web, rends cette distinction explicite.";
+
+  let res = await createWebSearchMessage({
+    model,
+    system,
+    prompt,
+    maxTokens: 1600,
+  });
+
+  if (res.stop_reason === "pause_turn") {
+    res = await createWebSearchMessage({
+      model,
+      system,
+      prompt,
+      maxTokens: 1600,
+      messages: [
+        { role: "user", content: prompt },
+        { role: "assistant", content: res.content },
+      ],
+    });
+  }
+
+  await logUsage(courseId, "qa", model, res.usage);
+
+  const { texte, sourcesWeb } = texteEtSources(res.content);
+  const sectionsCitees = sectionsCiteesDepuisTexte(texte, sections);
+  const source: QaSource =
+    sectionsCitees.length > 0 && sourcesWeb.length > 0
+      ? "mixte"
+      : sourcesWeb.length > 0
+        ? "exterieur"
+        : "cours";
+
+  return {
+    reponse: texte || "Je n'ai pas pu produire de réponse exploitable.",
+    source,
+    sectionsCitees,
+    sourcesWeb,
+  };
 }

@@ -9,11 +9,14 @@ import { Button } from "@/components/ui/button";
 import { Chip, type ChipVariant } from "@/components/ui/chip";
 
 type Source = "cours" | "exterieur" | "mixte";
+type QaMode = "cours" | "cours_web";
 
 interface QaResult {
   reponse: string;
   source: Source;
   sections: { id: string; titre: string }[];
+  sourcesWeb: { title: string | null; url: string }[];
+  mode: QaMode;
 }
 
 interface Message {
@@ -36,6 +39,7 @@ const SOURCE_VARIANT: Record<Source, ChipVariant> = {
 
 export function QaPanel({ courseId }: { courseId: string }) {
   const [question, setQuestion] = useState("");
+  const [mode, setMode] = useState<QaMode>("cours");
   const [messages, setMessages] = useState<Message[]>([]);
   const [loading, setLoading] = useState(false);
 
@@ -49,7 +53,7 @@ export function QaPanel({ courseId }: { courseId: string }) {
       const res = await fetch(`/api/course/${courseId}/qa`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ question: clean }),
+        body: JSON.stringify({ question: clean, mode }),
       });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error ?? "Échec de la question.");
@@ -72,6 +76,27 @@ export function QaPanel({ courseId }: { courseId: string }) {
   return (
     <div className="space-y-5">
       <form onSubmit={submit} className="space-y-3 rounded-[var(--radius)] bg-card p-4 ring-1 ring-foreground/10">
+        <div className="grid grid-cols-2 gap-1 rounded-lg bg-muted p-1">
+          {(
+            [
+              ["cours", "Cours seulement"],
+              ["cours_web", "Cours + web"],
+            ] as const
+          ).map(([value, label]) => (
+            <button
+              key={value}
+              type="button"
+              onClick={() => setMode(value)}
+              className={
+                mode === value
+                  ? "rounded-md bg-background px-2 py-1.5 text-[0.8125rem] font-medium text-foreground ring-1 ring-border"
+                  : "rounded-md px-2 py-1.5 text-[0.8125rem] font-medium text-muted-foreground transition-colors hover:text-foreground"
+              }
+            >
+              {label}
+            </button>
+          ))}
+        </div>
         <label htmlFor="question" className="text-[0.8125rem] font-medium text-muted-foreground">
           Question
         </label>
@@ -86,6 +111,12 @@ export function QaPanel({ courseId }: { courseId: string }) {
         <Button type="submit" size="lg" disabled={loading || question.trim().length < 3} className="w-full">
           {loading ? "Question en cours…" : "Demander"} <Send />
         </Button>
+        {mode === "cours_web" && (
+          <p className="text-[0.8125rem] leading-relaxed text-muted-foreground">
+            Le mode web cherche en ligne et peut coûter plus cher. Utilise-le pour vérifier ou
+            compléter le cours, pas pour remplacer la réponse attendue à l&apos;examen.
+          </p>
+        )}
       </form>
 
       {messages.length === 0 ? (
@@ -122,6 +153,23 @@ export function QaPanel({ courseId }: { courseId: string }) {
                   <ul className="space-y-1 text-[0.8125rem] text-muted-foreground">
                     {message.result.sections.map((section) => (
                       <li key={section.id}>Source cours : {section.titre}</li>
+                    ))}
+                  </ul>
+                )}
+                {message.result.sourcesWeb.length > 0 && (
+                  <ul className="space-y-1 text-[0.8125rem] text-muted-foreground">
+                    {message.result.sourcesWeb.map((source) => (
+                      <li key={source.url}>
+                        Source web :{" "}
+                        <a
+                          href={source.url}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="text-primary underline-offset-4 hover:underline"
+                        >
+                          {source.title ?? source.url}
+                        </a>
+                      </li>
                     ))}
                   </ul>
                 )}
