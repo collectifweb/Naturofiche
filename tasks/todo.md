@@ -168,16 +168,17 @@ Plan d'implémentation à valider avant de coder :
 
 Objectif : enrichir le Q&A sans contaminer le mode d'étude par défaut.
 
-- [x] **Mode explicite** : garder `cours seulement` par défaut ; ajouter `cours + web` dans l'UI Q&A.
+- [x] **Recherche web explicite** : garder la recherche web désactivée par défaut ; ajouter une option « Recherche sur le web » dans l'UI Q&A.
 - [x] **Serveur uniquement** : ajouter un appel Anthropic avec outil serveur `web_search_20250305`, `max_uses` limité, journalisé en phase `qa`.
 - [x] **Sources visibles** : afficher les sections du cours citées + les sources web retournées (titre/URL si disponibles).
 - [x] **Usage** : la page `/usage` doit refléter l'appel `qa` web via `ApiUsageLog`.
 - [x] **Validation** : lint, `tsc --noEmit`, build, smoke test live F-354.
 - [x] **Docs + git** : mettre à jour README/CLAUDE/lessons/todo, commit local sans push automatique.
 - [x] **Q&A dans les fiches** : rendre `QaPanel` réutilisable en mode compact et l'afficher directement sur `/course/[id]/fiche/[unitId]`, avant le mini-quiz.
+- [x] **Historique compact** : dans les fiches, garder la dernière réponse ouverte et replier les anciennes dans « Questions précédentes ».
 
 ### Review M5bis (vérif sur F-354)
-- **Mode explicite** : `/course/cmq0xcvix0000osbydme0whft/qa` garde `Cours seulement` par défaut et propose `Cours + web` comme choix volontaire.
+- **Mode explicite** : `/course/cmq0xcvix0000osbydme0whft/qa` garde la recherche web désactivée par défaut et propose une option « Recherche sur le web ».
 - **Web search** : `POST /api/course/cmq0xcvix0000osbydme0whft/qa` avec `mode="cours_web"` et « Le zinc est-il encore recommandé aujourd'hui pour soutenir l'immunité ? » → réponse `source="mixte"`, sections cours citées (Application symptomatique, Zinc, Cuivre-Zinc) + sources web NIH/PMC/MSD. Latence observée après limitation : ~7 s.
 - **Garde coût/latence** : outil serveur `web_search_20250305`, `max_uses=1`, timeout SDK 30 s, domaines autorisés santé/institutionnels (`nih.gov`, `ods.od.nih.gov`, `medlineplus.gov`, `msdmanuals.com`, etc.).
 - **Usage API** : Q&A total sur F-354 = 3 appels / 31 789 in / 1 258 out ; total cours = 30 appels / 310 850 in / 75 089 out.
@@ -187,5 +188,5 @@ Objectif : enrichir le Q&A sans contaminer le mode d'étude par défaut.
 
 ### Review post-M5bis — Q&A contextuel dans les fiches
 - **Usage réel** : le module Q&A est disponible directement pendant la lecture d'une fiche révisable, parce que les questions apparaissent à ce moment-là.
-- **Implémentation** : [QaPanel](../src/components/qa-panel.tsx) accepte maintenant un mode `compact` + textes configurables ; la page fiche l'insère entre les notions-clés et le mini-quiz.
+- **Implémentation** : [QaPanel](../src/components/qa-panel.tsx) accepte maintenant un mode `compact` + textes configurables ; la page fiche l'insère entre les notions-clés et le mini-quiz ; la dernière réponse reste ouverte et les anciennes sont repliables.
 - **Validation technique** : `npm run lint` et `npx tsc --noEmit` verts sous Node 20.

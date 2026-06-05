@@ -172,8 +172,12 @@ Patterns appris pendant le développement, pour éviter de répéter les erreurs
 - **Le Q&A doit être au point de lecture.** Une page dédiée est utile comme outil global, mais les vraies
   questions apparaissent pendant la lecture d'une fiche. Le panneau Q&A doit donc être réutilisable en version
   compacte dans `/fiche/[unitId]`, avec le même endpoint serveur et le même affichage de sources.
+- **Historique Q&A : dernière réponse ouverte, anciennes repliées.** Dans une fiche longue, empiler toutes les
+  réponses transforme l'aide en bruit de scroll. Garder seulement l'échange actif en pleine hauteur et ranger
+  les anciennes questions en `<details>`.
 - **Le web doit rester explicite.** Pour une app d'étude, `cours seulement` est le mode par défaut : c'est la
-  vérité attendue à l'examen. `cours + web` sert à vérifier/compléter, pas à remplacer le cours.
+  vérité attendue à l'examen. Une option « Recherche sur le web » suffit pour vérifier/compléter, pas remplacer
+  le cours.
 - **Web search = latence et coût à borner.** Utiliser `web_search_20250305` avec `max_uses=1` et un timeout SDK
   (30 s). Un premier test non borné a dépassé 2 min ; après limitation, le smoke test F-354 a répondu en ~7 s.
 - **Santé : contraindre les domaines.** Sans garde, le web search peut citer des sites commerciaux. Pour les

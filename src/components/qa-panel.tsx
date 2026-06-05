@@ -4,7 +4,7 @@ import { FormEvent, useId, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { toast } from "sonner";
-import { Send } from "lucide-react";
+import { ChevronDown, Send } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Chip, type ChipVariant } from "@/components/ui/chip";
 
@@ -44,6 +44,86 @@ const SOURCE_VARIANT: Record<Source, ChipVariant> = {
   mixte: "utile",
 };
 
+function AnswerContent({ message }: { message: Message }) {
+  return (
+    <div className="space-y-2">
+      <div className="flex flex-wrap items-center gap-2">
+        <Chip variant={SOURCE_VARIANT[message.result.source]}>
+          Source : {SOURCE_LABEL[message.result.source]}
+        </Chip>
+        {message.result.sections.length > 0 && (
+          <span className="text-[0.8125rem] text-muted-foreground">
+            {message.result.sections.length} section
+            {message.result.sections.length > 1 ? "s" : ""} citée
+            {message.result.sections.length > 1 ? "s" : ""}
+          </span>
+        )}
+      </div>
+      <div className="fiche-prose max-w-none text-[0.98rem]">
+        <ReactMarkdown remarkPlugins={[remarkGfm]}>{message.result.reponse}</ReactMarkdown>
+      </div>
+      {message.result.sections.length > 0 && (
+        <ul className="space-y-1 text-[0.8125rem] text-muted-foreground">
+          {message.result.sections.map((section) => (
+            <li key={section.id}>Source cours : {section.titre}</li>
+          ))}
+        </ul>
+      )}
+      {message.result.sourcesWeb.length > 0 && (
+        <ul className="space-y-1 text-[0.8125rem] text-muted-foreground">
+          {message.result.sourcesWeb.map((source) => (
+            <li key={source.url}>
+              Source web :{" "}
+              <a
+                href={source.url}
+                target="_blank"
+                rel="noreferrer"
+                className="text-primary underline-offset-4 hover:underline"
+              >
+                {source.title ?? source.url}
+              </a>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
+
+function QuestionAnswerCard({ message }: { message: Message }) {
+  return (
+    <article className="space-y-3 rounded-[var(--radius)] bg-card p-4 ring-1 ring-foreground/10">
+      <div className="space-y-1">
+        <p className="text-[0.8125rem] text-muted-foreground">Question</p>
+        <p className="text-[0.95rem] font-medium break-words">{message.question}</p>
+      </div>
+      <AnswerContent message={message} />
+    </article>
+  );
+}
+
+function CollapsedQuestion({ message }: { message: Message }) {
+  return (
+    <details className="group rounded-lg bg-background p-3 ring-1 ring-foreground/10">
+      <summary className="flex cursor-pointer list-none items-center gap-2">
+        <span className="min-w-0 flex-1 truncate text-[0.9rem] font-medium">
+          {message.question}
+        </span>
+        <Chip variant={SOURCE_VARIANT[message.result.source]}>
+          {SOURCE_LABEL[message.result.source]}
+        </Chip>
+        <ChevronDown
+          className="size-4 shrink-0 text-muted-foreground transition-transform group-open:rotate-180"
+          aria-hidden
+        />
+      </summary>
+      <div className="mt-3 border-t border-border pt-3">
+        <AnswerContent message={message} />
+      </div>
+    </details>
+  );
+}
+
 export function QaPanel({
   courseId,
   compact = false,
@@ -55,6 +135,7 @@ export function QaPanel({
   const [mode, setMode] = useState<QaMode>("cours");
   const [messages, setMessages] = useState<Message[]>([]);
   const [loading, setLoading] = useState(false);
+  const [latestMessage, ...previousMessages] = messages;
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -96,27 +177,6 @@ export function QaPanel({
             : "space-y-3 rounded-[var(--radius)] bg-card p-4 ring-1 ring-foreground/10"
         }
       >
-        <div className="grid grid-cols-2 gap-1 rounded-lg bg-muted p-1">
-          {(
-            [
-              ["cours", "Cours seulement"],
-              ["cours_web", "Cours + web"],
-            ] as const
-          ).map(([value, label]) => (
-            <button
-              key={value}
-              type="button"
-              onClick={() => setMode(value)}
-              className={
-                mode === value
-                  ? "rounded-md bg-background px-2 py-1.5 text-[0.8125rem] font-medium text-foreground ring-1 ring-border"
-                  : "rounded-md px-2 py-1.5 text-[0.8125rem] font-medium text-muted-foreground transition-colors hover:text-foreground"
-              }
-            >
-              {label}
-            </button>
-          ))}
-        </div>
         <label htmlFor={questionId} className="text-[0.8125rem] font-medium text-muted-foreground">
           Question
         </label>
@@ -132,6 +192,15 @@ export function QaPanel({
               : "min-h-28 w-full resize-y rounded-lg border border-border bg-background px-3 py-2 text-base leading-relaxed outline-none transition-colors focus:border-ring focus:ring-3 focus:ring-ring/30"
           }
         />
+        <label className="flex cursor-pointer items-center gap-2 rounded-lg bg-muted px-3 py-2 text-[0.8125rem] font-medium text-foreground">
+          <input
+            type="checkbox"
+            checked={mode === "cours_web"}
+            onChange={(event) => setMode(event.target.checked ? "cours_web" : "cours")}
+            className="size-4 accent-primary"
+          />
+          Recherche sur le web
+        </label>
         <Button type="submit" size="lg" disabled={loading || question.trim().length < 3} className="w-full">
           {loading ? "Question en cours…" : "Demander"} <Send />
         </Button>
@@ -157,55 +226,33 @@ export function QaPanel({
         </div>
       ) : (
         <div className="space-y-3">
-          {messages.map((message) => (
-            <article key={message.id} className="space-y-3 rounded-[var(--radius)] bg-card p-4 ring-1 ring-foreground/10">
-              <div className="space-y-1">
-                <p className="text-[0.8125rem] text-muted-foreground">Question</p>
-                <p className="text-[0.95rem] font-medium break-words">{message.question}</p>
-              </div>
-              <div className="space-y-2">
-                <div className="flex flex-wrap items-center gap-2">
-                  <Chip variant={SOURCE_VARIANT[message.result.source]}>
-                    Source : {SOURCE_LABEL[message.result.source]}
-                  </Chip>
-                  {message.result.sections.length > 0 && (
-                    <span className="text-[0.8125rem] text-muted-foreground">
-                      {message.result.sections.length} section
-                      {message.result.sections.length > 1 ? "s" : ""} citée
-                      {message.result.sections.length > 1 ? "s" : ""}
+          {compact ? (
+            <>
+              <QuestionAnswerCard message={latestMessage} />
+              {previousMessages.length > 0 && (
+                <details className="group rounded-[var(--radius)] bg-card/70 p-3 ring-1 ring-foreground/10">
+                  <summary className="flex cursor-pointer list-none items-center gap-2 text-[0.9rem] font-medium">
+                    <span className="flex-1">
+                      Questions précédentes ({previousMessages.length})
                     </span>
-                  )}
-                </div>
-                <div className="fiche-prose max-w-none text-[0.98rem]">
-                  <ReactMarkdown remarkPlugins={[remarkGfm]}>{message.result.reponse}</ReactMarkdown>
-                </div>
-                {message.result.sections.length > 0 && (
-                  <ul className="space-y-1 text-[0.8125rem] text-muted-foreground">
-                    {message.result.sections.map((section) => (
-                      <li key={section.id}>Source cours : {section.titre}</li>
+                    <ChevronDown
+                      className="size-4 text-muted-foreground transition-transform group-open:rotate-180"
+                      aria-hidden
+                    />
+                  </summary>
+                  <div className="mt-3 space-y-2">
+                    {previousMessages.map((message) => (
+                      <CollapsedQuestion key={message.id} message={message} />
                     ))}
-                  </ul>
-                )}
-                {message.result.sourcesWeb.length > 0 && (
-                  <ul className="space-y-1 text-[0.8125rem] text-muted-foreground">
-                    {message.result.sourcesWeb.map((source) => (
-                      <li key={source.url}>
-                        Source web :{" "}
-                        <a
-                          href={source.url}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="text-primary underline-offset-4 hover:underline"
-                        >
-                          {source.title ?? source.url}
-                        </a>
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </div>
-            </article>
-          ))}
+                  </div>
+                </details>
+              )}
+            </>
+          ) : (
+            messages.map((message) => (
+              <QuestionAnswerCard key={message.id} message={message} />
+            ))
+          )}
         </div>
       )}
     </div>
