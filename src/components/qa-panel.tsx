@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useId, useState } from "react";
+import { FormEvent, useEffect, useId, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { toast } from "sonner";
@@ -23,10 +23,12 @@ interface Message {
   id: string;
   question: string;
   result: QaResult;
+  createdAt?: string;
 }
 
 interface QaPanelProps {
   courseId: string;
+  studyUnitId?: string;
   compact?: boolean;
   placeholder?: string;
   emptyText?: string;
@@ -126,6 +128,7 @@ function CollapsedQuestion({ message }: { message: Message }) {
 
 export function QaPanel({
   courseId,
+  studyUnitId,
   compact = false,
   placeholder = "Quels sont les signes de carence en zinc ?",
   emptyText = "Les réponses citeront leur origine : cours, extérieur, ou un mélange des deux.",
@@ -137,6 +140,27 @@ export function QaPanel({
   const [loading, setLoading] = useState(false);
   const [latestMessage, ...previousMessages] = messages;
 
+  useEffect(() => {
+    const controller = new AbortController();
+    const params = new URLSearchParams();
+    if (studyUnitId) params.set("studyUnitId", studyUnitId);
+
+    fetch(`/api/course/${courseId}/qa?${params.toString()}`, {
+      signal: controller.signal,
+    })
+      .then(async (res) => {
+        const json = await res.json();
+        if (!res.ok) throw new Error(json.error ?? "Échec du chargement de l'historique.");
+        setMessages(Array.isArray(json.messages) ? (json.messages as Message[]) : []);
+      })
+      .catch((err) => {
+        if (err instanceof DOMException && err.name === "AbortError") return;
+        toast.error(err instanceof Error ? err.message : "Échec du chargement de l'historique.");
+      });
+
+    return () => controller.abort();
+  }, [courseId, studyUnitId]);
+
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const clean = question.trim();
@@ -147,18 +171,11 @@ export function QaPanel({
       const res = await fetch(`/api/course/${courseId}/qa`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ question: clean, mode }),
+        body: JSON.stringify({ question: clean, mode, studyUnitId }),
       });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error ?? "Échec de la question.");
-      setMessages((current) => [
-        {
-          id: crypto.randomUUID(),
-          question: clean,
-          result: json as QaResult,
-        },
-        ...current,
-      ]);
+      setMessages((current) => [json.message as Message, ...current]);
       setQuestion("");
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Échec de la question.");

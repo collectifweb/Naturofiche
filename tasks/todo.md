@@ -162,7 +162,7 @@ Plan d'implémentation à valider avant de coder :
 - **Usage API** : `/course/cmq0xcvix0000osbydme0whft/usage` répond 200 et agrège les logs : ingestion 15 appels / 194 146 in / 60 393 out ; Q&A 1 appel / 2 778 in / 252 out ; vérification 12 appels / 84 915 in / 13 438 out ; total 28 appels / 281 839 in / 74 083 out.
 - **Validation technique** : `npm run lint`, `npx tsc --noEmit`, `npm run build` verts sous Node 20. Le build a nécessité l'accès réseau pour `next/font` (polices Google), puis a compilé toutes les routes M5.
 
-**Limites assumées M5** : Q&A sans historique persistant et sans embeddings (retrieval lexical), pas de web live (repli sur connaissances du modèle), pas d'estimation de coût affichée pour éviter des prix obsolètes.
+**Limites assumées M5 initial** : Q&A sans historique persistant et sans embeddings (retrieval lexical), pas de web live (repli sur connaissances du modèle), pas d'estimation de coût affichée pour éviter des prix obsolètes. La limite d'historique a été levée ensuite par le jalon post-M5 ci-dessous.
 
 ## M5bis — Q&A avec recherche web ✅ livré
 
@@ -184,9 +184,26 @@ Objectif : enrichir le Q&A sans contaminer le mode d'étude par défaut.
 - **Usage API** : Q&A total sur F-354 = 3 appels / 31 789 in / 1 258 out ; total cours = 30 appels / 310 850 in / 75 089 out.
 - **Validation technique** : `npm run lint`, `npx tsc --noEmit`, `npm run build` verts sous Node 20.
 
-**Limites assumées M5bis** : pas de persistance d'historique web, pas de coût web dédié en DB (le schéma ne stocke que tokens/appels par phase), et sources web contraintes à des domaines fiables plutôt qu'à tout le web.
+**Limites assumées M5bis initial** : pas de persistance d'historique web, pas de coût web dédié en DB (le schéma ne stocke que tokens/appels par phase), et sources web contraintes à des domaines fiables plutôt qu'à tout le web. La persistance d'historique a été ajoutée ensuite.
 
 ### Review post-M5bis — Q&A contextuel dans les fiches
 - **Usage réel** : le module Q&A est disponible directement pendant la lecture d'une fiche révisable, parce que les questions apparaissent à ce moment-là.
 - **Implémentation** : [QaPanel](../src/components/qa-panel.tsx) accepte maintenant un mode `compact` + textes configurables ; la page fiche l'insère entre les notions-clés et le mini-quiz ; la dernière réponse reste ouverte et les anciennes sont repliables.
 - **Validation technique** : `npm run lint` et `npx tsc --noEmit` verts sous Node 20.
+
+## Post-M5 — Historique Q&A persistant ✅ livré
+
+Objectif : conserver les questions/réponses quand on revient sur une fiche ou un ancien cours.
+
+- [x] **Migration DB** : ajouter `QaMessage` (`courseId`, `studyUnitId` optionnel, question, réponse, source, mode, sections citées JSON, sources web JSON, date).
+- [x] **API Q&A** : `GET /api/course/[id]/qa` recharge les 50 derniers messages du scope courant ; `POST` sauvegarde l'échange après la réponse IA.
+- [x] **Fiches** : passer `studyUnitId` au `QaPanel`, pour un historique séparé par fiche.
+- [x] **UI compacte** : garder la dernière réponse ouverte et les anciennes dans « Questions précédentes ».
+- [x] **Docs + validation partielle** : mettre à jour README/CLAUDE/lessons/todo ; relancer lint, `tsc` et smoke DB. Build/live à relancer hors sandbox.
+
+### Review post-M5 — Historique Q&A
+- **Persistance** : les questions posées depuis une fiche sont rattachées à son `StudyUnit` et rechargées au retour sur cette fiche.
+- **Scope** : la page Q&A globale garde son historique de cours (`studyUnitId=null`) séparé de l'historique des fiches.
+- **Migration** : `20260605155011_qa_history` crée `QaMessage`, cascade sur suppression du cours et `SET NULL` si une fiche est supprimée.
+- **Validation** : `npm run lint` et `npx tsc --noEmit` verts ; smoke DB sur F-354/fiche `cmq0xe6ya003josbysiv9mr2w` OK (création, lecture, suppression d'une entrée test).
+- **À relancer hors sandbox** : `npm run build` échoue ici uniquement sur `next/font` sans accès Google Fonts ; le serveur dev ne peut pas être démarré depuis le sandbox (`listen EPERM`).

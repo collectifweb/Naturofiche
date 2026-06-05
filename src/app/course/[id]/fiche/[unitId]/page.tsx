@@ -121,9 +121,10 @@ export default async function FichePage({
         </div>
         <QaPanel
           courseId={id}
+          studyUnitId={unit.id}
           compact
           placeholder={`Question sur ${unit.titre}`}
-          emptyText="La réponse restera visible ici pendant cette session, avec ses sources."
+          emptyText="Les réponses seront conservées avec cette fiche, avec leurs sources."
         />
       </section>
 

@@ -150,7 +150,7 @@ Patterns appris pendant le développement, pour éviter de répéter les erreurs
 
 ## Q&A, corrigé officiel & usage API (M5)
 
-- **Q&A direct = sans état + source obligatoire.** Le retrieval mots-clés suffit pour SQLite mono-utilisateur :
+- **Q&A direct = source obligatoire.** Le retrieval mots-clés suffit pour SQLite mono-utilisateur :
   normaliser sans accents, ignorer les sections `meta`, scorer `titre ×3 + texte ×1`, envoyer seulement les
   extraits top N tronqués. L'IA doit renvoyer une source structurée (`cours | exterieur | mixte`) ; l'UI affiche
   ce badge avant le texte pour satisfaire le critère de traçabilité.
@@ -175,6 +175,10 @@ Patterns appris pendant le développement, pour éviter de répéter les erreurs
 - **Historique Q&A : dernière réponse ouverte, anciennes repliées.** Dans une fiche longue, empiler toutes les
   réponses transforme l'aide en bruit de scroll. Garder seulement l'échange actif en pleine hauteur et ranger
   les anciennes questions en `<details>`.
+- **Historique Q&A : DB > session locale dès qu'on révise dans le temps.** Une question posée pendant la lecture
+  garde sa valeur quand on revient sur un ancien cours. Stocker `question`, `reponse`, `source`, `mode`,
+  `sectionsCitees` et `sourcesWeb` dans une table dédiée (`QaMessage`), avec `studyUnitId` optionnel pour
+  séparer l'historique de fiche de la page Q&A globale.
 - **Le web doit rester explicite.** Pour une app d'étude, `cours seulement` est le mode par défaut : c'est la
   vérité attendue à l'examen. Une option « Recherche sur le web » suffit pour vérifier/compléter, pas remplacer
   le cours.

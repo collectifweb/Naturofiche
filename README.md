@@ -2,7 +2,7 @@
 
 Application web **mono-utilisateur, locale, PWA mobile-first** pour préparer un examen
 de formation (CMDQ) à partir d'un PDF de cours et de son PDF d'examen. Elle génère un
-parcours d'étude court (fiches de synthèse, mini-quiz, examen blanc, Q&A sourcé) avec répétition
+parcours d'étude court (fiches de synthèse, mini-quiz, examen blanc, Q&A sourcé et persistant) avec répétition
 espacée. Tous les appels IA (Anthropic / Claude) passent côté serveur ; la clé API
 n'est jamais exposée au client.
 
@@ -77,7 +77,7 @@ src/
     api/course/[id]/status/  # avancement de l'ingestion (polling)
     api/course/[id]/progress/ # enregistre la complétion d'une fiche (+ score) → fiche suivante (M3)
     api/course/[id]/review/  # met à jour les boîtes de Leitner depuis un quiz (M4)
-    api/course/[id]/qa/      # Q&A serveur via runStructured + journalisation phase qa (M5)
+    api/course/[id]/qa/      # Q&A serveur + historique persistant + journalisation phase qa (M5/post-M5)
     api/course/[id]/corrige/ # upsert OfficialKey + correction des examen_officiel (M5)
     api/login/route.ts       # pose le cookie d'accès
   components/
@@ -86,7 +86,7 @@ src/
     fiche-markdown.tsx       # rendu markdown des fiches (react-markdown + remark-gfm, RSC) (M3)
     quiz-runner.tsx          # mini-quiz interactif (modes fiche|revision) + Leitner (M3/M4)
     exam-runner.tsx          # examen blanc : répondre à tout puis noter /100 (M4)
-    qa-panel.tsx             # Q&A client, page dédiée + mode compact dans les fiches (M5/M5bis)
+    qa-panel.tsx             # Q&A client, historique persistant, page dédiée + mode compact dans les fiches (M5/post-M5)
     corrige-import.tsx       # parsing local + aperçu avant application du corrigé (M5)
     sw-register.tsx          # enregistrement du service worker (prod)
   lib/
@@ -117,8 +117,8 @@ docs/                        # PDF de cours de test (gitignorés)
 - **M2** — **pipeline d'ingestion IA branché** ([`src/lib/ingest/`](./src/lib/ingest/)) : découpe adaptative + hiérarchisation essentiel/utile/secondaire, correspondance examen↔sections, déduction des réponses ancrées, génération fiches + mini-quiz + examen blanc, **agent de vérification distinct**, barre de progression réelle. Tourne une fois par cours, en tâche de fond, avec suivi de l'usage API.
 - **M3** — **plan d'étude + étude quotidienne** ([`src/lib/plan.ts`](./src/lib/plan.ts)) : rythme **dérivé** non bloquant (recalage automatique des jours sautés, plafond jamais dépassé), tableau de bord (jour, progression, lot du jour), lecture des fiches en markdown (tableaux GFM), Q&A contextuel dans la fiche et **mini-quiz interactif** avec correction immédiate + enregistrement de la complétion. **Aucune migration.**
 - **M4** — **répétition espacée + examen blanc** ([`src/lib/leitner.ts`](./src/lib/leitner.ts)) : boîtes de Leitner sur les mini-quiz (notions ratées revues vite, maîtrisées espacées), **mode révision** mis en avant en fin de parcours, et **examen blanc** de 20 QCM noté **/100 et /20** au seuil 80 % avec correction renvoyant aux sections. **Aucune migration.**
-- **M5** — **Q&A avec source + corrigé officiel + suivi API** ([`src/lib/qa.ts`](./src/lib/qa.ts), [`src/lib/corrige.ts`](./src/lib/corrige.ts)) : questions en direct via Haiku côté serveur, réponse étiquetée `cours` / `extérieur` / `mixte`, import du corrigé officiel avec correction et journalisation des écarts dans `OfficialKey`, page Usage agrégeant `ApiUsageLog` par phase/modèle. **Aucune migration.**
-- **M5bis** — **Q&A avec recherche web** : option explicite « Recherche sur le web » dans le panneau Q&A. Par défaut, la réponse reste centrée sur le cours ; si l'option est cochée, l'outil serveur Anthropic `web_search_20250305` est limité à 1 recherche et à des domaines santé/institutionnels, puis affiche les sources web cliquables. Le panneau est disponible en page dédiée et directement dans chaque fiche révisable, où les anciennes questions sont repliées.
+- **M5** — **Q&A avec source + corrigé officiel + suivi API** ([`src/lib/qa.ts`](./src/lib/qa.ts), [`src/lib/corrige.ts`](./src/lib/corrige.ts)) : questions en direct via Haiku côté serveur, réponse étiquetée `cours` / `extérieur` / `mixte`, import du corrigé officiel avec correction et journalisation des écarts dans `OfficialKey`, page Usage agrégeant `ApiUsageLog` par phase/modèle.
+- **M5bis/post-M5** — **Q&A avec recherche web + historique persistant** : option explicite « Recherche sur le web » dans le panneau Q&A. Par défaut, la réponse reste centrée sur le cours ; si l'option est cochée, l'outil serveur Anthropic `web_search_20250305` est limité à 1 recherche et à des domaines santé/institutionnels, puis affiche les sources web cliquables. Le panneau est disponible en page dédiée et directement dans chaque fiche révisable, où les anciennes questions sont repliées et sauvegardées dans `QaMessage`.
 
 > L'ingestion IA tourne **en tâche de fond dans le process Node** (fire-and-forget après l'import) : ça
 > suppose un serveur permanent (`next start`/`next dev`), pas du serverless. La page cours suit la

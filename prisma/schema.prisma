@@ -36,6 +36,7 @@ model Course {
   sections    Section[]
   studyUnits  StudyUnit[]
   questions   Question[]
+  qaMessages  QaMessage[]
   officialKey OfficialKey?
   apiLogs     ApiUsageLog[]
 }
@@ -71,6 +72,7 @@ model StudyUnit {
 
   fiche    Fiche?
   progress Progress?
+  qaMessages QaMessage[]
 
   @@index([courseId, ordre])
 }
@@ -133,6 +135,27 @@ model OfficialKey {
   reponsesImportees String   // JSON: { question: number, reponse: string }[]
   ecartsDetectes    String   @default("[]") // JSON
   importeLe         DateTime @default(now())
+}
+
+/// Historique des questions Q&A posées par l'étudiant.
+model QaMessage {
+  id             String     @id @default(cuid())
+  courseId       String
+  course         Course     @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  studyUnitId    String?
+  studyUnit      StudyUnit? @relation(fields: [studyUnitId], references: [id], onDelete: SetNull)
+  question       String
+  reponse        String
+  // source : cours | exterieur | mixte
+  source         String
+  // mode : cours | cours_web
+  mode           String     @default("cours")
+  sectionsCitees String     @default("[]") // JSON: { id: string, titre: string }[]
+  sourcesWeb     String     @default("[]") // JSON: { title: string | null, url: string }[]
+  createdAt      DateTime   @default(now())
+
+  @@index([courseId, createdAt])
+  @@index([studyUnitId, createdAt])
 }
 
 /// Journalisation de l'usage API Anthropic (dès M2).
