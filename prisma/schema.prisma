@@ -1,0 +1,143 @@
+// NaturoFiche — schéma complet (mono-utilisateur, SQLite).
+// SQLite n'a ni tableaux ni enums natifs : les listes sont stockées en String JSON,
+// les "enums" en String documentés (voir commentaires).
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+/// Un cours importé (le PDF du cours + le PDF de l'examen) et son parcours.
+/// Mono-cours actif à la fois, mais on garde l'historique.
+model Course {
+  id              String   @id @default(cuid())
+  title           String
+  code            String?
+  delaiJours      Int
+  dateDebut       DateTime @default(now())
+  // statut : nouveau | extraction | ingestion | verification | pret | erreur
+  statut          String   @default("nouveau")
+  cheminPdfCours  String
+  cheminPdfExamen String
+  ingestModel     String?
+  actif           Boolean  @default(true) // un seul cours "actif" affiché en home
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  sections    Section[]
+  studyUnits  StudyUnit[]
+  questions   Question[]
+  officialKey OfficialKey?
+  apiLogs     ApiUsageLog[]
+}
+
+/// Une section logique du cours, issue du découpage (structurel en M1, IA en M2).
+model Section {
+  id         String  @id @default(cuid())
+  courseId   String
+  course     Course  @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  titre      String
+  niveau     Int     // profondeur de titre (1 = chapitre, 2 = sous-section…)
+  ordre      Int     // ordre d'apparition dans le document
+  texte      String
+  // type : notion | tableau | diathese | meta
+  type       String  @default("notion")
+  // importance : essentiel | utile | secondaire (renseigné en M2)
+  importance String?
+
+  questions Question[]
+
+  @@index([courseId, ordre])
+}
+
+/// Unité d'étude = une "fiche du jour". Regroupe une ou plusieurs sections.
+model StudyUnit {
+  id            String  @id @default(cuid())
+  courseId      String
+  course        Course  @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  ordre         Int
+  jourCible     Int
+  titre         String
+  sectionsLiees String  @default("[]") // JSON: string[] d'ids de Section
+
+  fiche    Fiche?
+  progress Progress?
+
+  @@index([courseId, ordre])
+}
+
+/// La fiche de synthèse rattachée à une unité d'étude.
+model Fiche {
+  id              String    @id @default(cuid())
+  studyUnitId     String    @unique
+  studyUnit       StudyUnit @relation(fields: [studyUnitId], references: [id], onDelete: Cascade)
+  contenuMarkdown String
+  notionsCles     String    @default("[]") // JSON: string[]
+}
+
+/// Une question (quiz de vérif, examen blanc, ou examen officiel).
+model Question {
+  id               String   @id @default(cuid())
+  courseId         String
+  course           Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  // type : quiz_verif | examen_blanc | examen_officiel
+  type             String
+  enonce           String
+  options          String   // JSON: { key: "A"|"B"|"C"|"D", text: string }[]
+  bonneReponse     String?  // "A" | "B" | "C" | "D" (déduite par l'IA en M2)
+  justification    String?
+  sectionSourceId  String?
+  sectionSource    Section? @relation(fields: [sectionSourceId], references: [id], onDelete: SetNull)
+  // statutValidation : en_attente | valide | rejete
+  statutValidation String   @default("en_attente")
+  studyUnitId      String?  // pour un quiz_verif rattaché à une unité
+
+  reviewItem ReviewItem?
+
+  @@index([courseId, type])
+}
+
+/// Progression d'une unité d'étude (complétion + score du mini-quiz).
+model Progress {
+  id          String    @id @default(cuid())
+  studyUnitId String    @unique
+  studyUnit   StudyUnit @relation(fields: [studyUnitId], references: [id], onDelete: Cascade)
+  completeLe  DateTime?
+  scoreQuiz   Int?
+}
+
+/// Répétition espacée — boîtes de Leitner (M4).
+model ReviewItem {
+  id                String    @id @default(cuid())
+  questionId        String    @unique
+  question          Question  @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  boite             Int       @default(1)
+  prochaineEcheance DateTime?
+  historique        String    @default("[]") // JSON: { date: string, correct: boolean }[]
+}
+
+/// Corrigé officiel importé après la remise (M5) — vérité de référence.
+model OfficialKey {
+  id                String   @id @default(cuid())
+  courseId          String   @unique
+  course            Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  reponsesImportees String   // JSON: { question: number, reponse: string }[]
+  ecartsDetectes    String   @default("[]") // JSON
+  importeLe         DateTime @default(now())
+}
+
+/// Journalisation de l'usage API Anthropic (dès M2).
+model ApiUsageLog {
+  id           String   @id @default(cuid())
+  courseId     String?
+  course       Course?  @relation(fields: [courseId], references: [id], onDelete: SetNull)
+  phase        String   // ingestion | verification | qa
+  model        String
+  inputTokens  Int      @default(0)
+  outputTokens Int      @default(0)
+  createdAt    DateTime @default(now())
+}
