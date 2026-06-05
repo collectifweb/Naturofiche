@@ -67,12 +67,32 @@ essentiel/utile/secondaire — tout cela est le cœur de **M2**.
 
 ---
 
-## M2 — Pipeline d'ingestion IA + agent de vérification (à planifier)
-- Découpe adaptative + hiérarchisation **essentiel / utile / secondaire**
-- Correspondance examen → sections, déduction des réponses (justification ancrée)
-- Génération des fiches + mini-quiz + réservoir examen blanc
-- **Agent de vérification** (modèle distinct) : unicité de la bonne réponse, ancrage, anti-hallucination
-- Barre de progression réelle (statut Course + polling), `ApiUsageLog`
+## M2 — Pipeline d'ingestion IA + agent de vérification ✅ livré et validé
+
+Pipeline [src/lib/ingest/](../src/lib/ingest/) en **4 étapes**, tâche de fond in-process, sortie structurée par tool-use.
+
+- [x] **Migration** `m2_ingestion_progress` : `Course.etapeIngestion`, `progressPct`, `erreurMessage`
+- [x] **`runStructured`** ([src/lib/anthropic.ts](../src/lib/anthropic.ts)) : tool-use forcé + journalisation `ApiUsageLog`
+- [x] **Étape 1 — `structure.ts`** (Opus) : découpe adaptative + hiérarchisation essentiel/utile/secondaire (lignes numérotées → plages de lignes)
+- [x] **Étape 2 — `answers.ts`** (Opus) : déduction des réponses + justification ancrée + section source (indexation → ids DB)
+- [x] **Étape 3 — `generate.ts`** (Opus) : unités d'étude réparties sur le délai, fiches + mini-quiz, réservoir examen blanc
+- [x] **Étape 4 — `verify.ts`** (Sonnet, modèle distinct) : verdict valide/corrige/rejete, sans bloquer le cours
+- [x] **Endpoints** : `POST /api/course/[id]/ingest` (fire-and-forget, `?force=1`), `GET …/status` (polling) ; import → `statut=ingestion` + trigger
+- [x] **UI** : [IngestionProgress](../src/components/ingestion-progress.tsx) (barre + polling + relance) ; page cours = progression OU contenu hiérarchisé (Chip importance, réponses + justif + source, fiches)
+- [x] **Idempotent / re-runnable** : purge des artefacts M2 + ré-extraction depuis le PDF disque
+- [x] `npm run build` vert + `eslint` clean
+
+### Review M2 (run live F-354, ~13 min, Opus + Sonnet)
+- **57 sections** : 29 essentiel · 18 utile · 2 secondaire · 8 méta (exclus). Diathèses (7) et tableaux (7) bien isolés.
+- **20/20 questions d'examen** déduites, **20/20 ancrées** à une section (critère §12) ; **19 validées + 1 rejetée** par le vérificateur (flaggée « à vérifier », comportement attendu). Réponses équilibrées A6/B4/C5/D5.
+- **47 fiches** (1 par unité essentiel/utile) + 94 quiz de vérif + 22 examen blanc. Validation globale : 131 valides / 5 rejetés.
+- **Coût** : 27 appels (15 Opus ingestion + 12 Sonnet vérif), ~279k in / 74k out tokens (~8 $) — one-time, maîtrisé.
+
+**Limites assumées M2** : la vérification se concentre sur les questions (chemin critère §12) ; l'audit d'hallucination des fiches est léger (le quiz d'une fiche sert de garde indirecte). Régénération = la correction proposée par le vérificateur (pas de 2ᵉ passe Opus). La distribution `jourCible` est provisoire (répartition uniforme essentiel d'abord) — le **rythme non bloquant + recalage = M3**.
+
+## M2bis (idées si besoin)
+- 2ᵉ passe de régénération Opus pour les questions `rejete` persistantes.
+- Audit d'hallucination dédié des fiches (section source vs contenu).
 
 ## M3 — Plan d'étude + étude quotidienne
 - Délai configurable, rythme non bloquant, recalage si jours sautés (jamais au-delà du plafond)

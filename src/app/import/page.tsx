@@ -54,7 +54,7 @@ export default function ImportPage() {
       const json = await res.json();
       if (!res.ok) throw new Error(json.error ?? "Échec de l'import.");
       toast.success(
-        `Cours importé : ${json.sections} sections, ${json.questions} questions d'examen.`,
+        `Cours importé (${json.questions} questions détectées). Analyse IA en cours…`,
       );
       router.push(`/course/${json.courseId}`);
     } catch (err) {
@@ -105,7 +105,7 @@ export default function ImportPage() {
               </p>
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 gap-3 min-[400px]:grid-cols-2">
               <div className="space-y-2">
                 <Label htmlFor="titre">Titre (optionnel)</Label>
                 <Input
@@ -113,7 +113,7 @@ export default function ImportPage() {
                   name="titre"
                   type="text"
                   placeholder="L'oligothérapie"
-                  className="h-10 text-base"
+                  className="text-base"
                 />
               </div>
               <div className="space-y-2">
@@ -123,7 +123,7 @@ export default function ImportPage() {
                   name="code"
                   type="text"
                   placeholder="354"
-                  className="h-10 text-base"
+                  className="text-base"
                 />
               </div>
             </div>
@@ -138,18 +138,31 @@ export default function ImportPage() {
                 max={365}
                 defaultValue={30}
                 required
-                className="h-10 text-base"
+                className="text-base"
               />
             </div>
 
-            <Button type="submit" size="lg" className="mt-1 w-full" disabled={loading}>
+            <Button
+              type="submit"
+              size="lg"
+              className="mt-1 w-full"
+              disabled={loading}
+              aria-busy={loading}
+            >
               {loading ? ETAPES[etape] : "Lancer l'import"}
             </Button>
 
             {loading && (
-              <p className="text-center text-xs text-muted-foreground">
-                Ne ferme pas la page pendant le traitement.
-              </p>
+              <>
+                {/* Annonce l'étape en cours aux lecteurs d'écran (le libellé du
+                    bouton change visuellement mais n'est pas annoncé seul). */}
+                <p role="status" aria-live="polite" className="sr-only">
+                  {ETAPES[etape]}
+                </p>
+                <p className="text-center text-xs text-muted-foreground">
+                  Ne ferme pas la page pendant le traitement.
+                </p>
+              </>
             )}
           </form>
         </CardContent>

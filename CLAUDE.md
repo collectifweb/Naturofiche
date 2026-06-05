@@ -15,7 +15,7 @@ Mono-utilisateur, **un seul cours actif** à la fois, 100 % local derrière un t
 - **Tailwind v4** (config CSS dans [src/app/globals.css](src/app/globals.css), **pas** de `tailwind.config`) + **shadcn/ui** (style `base-nova`, `@base-ui/react`, icônes lucide, toasts sonner)
 - **Design system appliqué** (thème **clair only**) : papier chaud + **un seul** vert herbacé ; polices **Geist** (UI) / **Source Serif 4** (lecture des fiches) / **Geist Mono**. Tokens `oklch` dans [globals.css](src/app/globals.css), composant signature [Chip](src/components/ui/chip.tsx). Source de vérité : [DESIGN.md](DESIGN.md) + [PRODUCT.md](PRODUCT.md).
 - **pdf-parse** (v1 épinglé) — extraction texte (PDF au texte sélectionnable, pas d'OCR)
-- **@anthropic-ai/sdk** — ingestion IA (client prêt, branché en M2)
+- **@anthropic-ai/sdk** — ingestion IA **branchée** (pipeline M2, [src/lib/ingest/](src/lib/ingest/)) ; sorties structurées par **tool-use forcé** ([`runStructured`](src/lib/anthropic.ts))
 - Alias d'import : `@/*` → `./src/*` ; util `cn()` dans [src/lib/utils.ts](src/lib/utils.ts)
 
 ## Commandes
@@ -35,18 +35,24 @@ npx prisma studio                     # explorer la DB
 
 ## État d'avancement (jalons)
 
-**M1 (socle technique) livré ET validé**, design system appliqué. Construit : accueil mono-cours ([src/app/page.tsx](src/app/page.tsx)), écran d'import + API ([src/app/import/page.tsx](src/app/import/page.tsx), [src/app/api/import/route.ts](src/app/api/import/route.ts)), page cours ([src/app/course/[id]/page.tsx](src/app/course/[id]/page.tsx)), PWA (manifest + `public/sw.js` + icônes), garde d'accès optionnelle ([src/proxy.ts](src/proxy.ts) — convention Next 16, **pas** `middleware.ts` — + `/login`). Validé bout-en-bout sur [docs/](docs/) F-354 + son examen : **44 sections, 20 questions**, `npm run build` vert. Ajouts post-M1 : **PDF d'examen optionnel** (repli sur le PDF du cours s'il l'inclut → `cheminPdfExamen` nullable) et **design system** ([DESIGN.md](DESIGN.md)) appliqué aux 3 écrans. **Prochaine étape : M2** (en attente du plan validé).
+**M1 + M2 livrés ET validés** sur F-354. M1 = socle (import, extraction, garde d'accès, PWA, design system). **M2 = pipeline d'ingestion IA branché et validé en live** : découpe adaptative + hiérarchisation essentiel/utile/secondaire, correspondance examen↔sections, déduction des réponses ancrées, génération fiches + mini-quiz + examen blanc, **agent de vérification distinct**, barre de progression réelle. **Prochaine étape : M3** (plan d'étude + étude quotidienne, en attente du plan validé).
 
-- **M1** socle : Next/Prisma/SQLite, écran d'import, extraction PDF, affichage des sections.
-- **M2** pipeline d'ingestion IA (correspondance examen↔sections, déduction des réponses, génération fiches/quiz) + agent de vérification.
+- **M1** socle : Next/Prisma/SQLite, écran d'import, extraction PDF, affichage des sections. *(validé : convention `proxy.ts` Next 16 **pas** `middleware.ts`)*
+- **M2** ✅ pipeline d'ingestion IA ([src/lib/ingest/](src/lib/ingest/)) + agent de vérification. Run live F-354 : **57 sections** (29 essentiel / 18 utile / 2 secondaire / 8 méta), **20/20 questions d'examen** déduites + ancrées (19 validées, 1 flaggée par le vérificateur), **47 fiches**, 94 quiz + 22 examen blanc, **27 appels API** (~279k in / 74k out). `npm run build` vert.
 - **M3** plan d'étude (délai configurable, rythme non bloquant, recalage si jours sautés) + étude quotidienne.
 - **M4** répétition espacée (Leitner) + examen blanc noté.
 - **M5** Q&A avec source affichée, import du corrigé officiel, suivi de l'usage API.
 
 ## Architecture
 
-### Pipeline d'ingestion (cœur du projet)
-PDF cours + examen → extraction texte → découpage en sections → correspondance examen↔sections → déduction des bonnes réponses → génération fiches/quiz → **vérification par un agent IA distinct** → parcours prêt. Tourne **une seule fois par cours**, à l'import (coût maîtrisé). `Course.statut` suit l'avancement : `nouveau | extraction | ingestion | verification | pret | erreur`.
+### Pipeline d'ingestion (cœur du projet) — [src/lib/ingest/](src/lib/ingest/)
+PDF cours + examen → extraction texte → **4 étapes IA** → parcours prêt. Tourne **une seule fois par cours** (coût maîtrisé). Orchestré par `pipeline.ts` → `runIngestion(courseId)` :
+1. **`structure.ts`** (Opus) — découpe adaptative + hiérarchisation. Astuce : on envoie le cours en **lignes numérotées** et l'IA renvoie des **plages** (`ligneDebut/ligneFin`) → on tranche le texte verbatim nous-mêmes (sortie compacte, pas de paraphrase).
+2. **`answers.ts`** (Opus) — déduction des bonnes réponses + justification ancrée + section source. Sections/questions **indexées** → remap vers les ids DB (pas de matching textuel fragile).
+3. **`generate.ts`** (Opus) — unités d'étude (1 par section essentiel/utile, réparties sur le délai, essentiel d'abord), fiches + mini-quiz par lots, réservoir examen blanc à partir des fiches.
+4. **`verify.ts`** (Sonnet, **modèle distinct**) — verdict par question : `valide` / `corrige` (applique la correction) / `rejete` (flaggé « à vérifier », exclu, **sans bloquer** le cours).
+
+**Exécution en tâche de fond in-process** : l'import déclenche `triggerIngestion` (fire-and-forget) et rend la main ; le pipeline tourne dans le process Node permanent. `Course.statut` (`nouveau | extraction | ingestion | verification | pret | erreur`) + `etapeIngestion`/`progressPct` suivent l'avancement ; la page cours **poll** `GET /api/course/[id]/status` ([IngestionProgress](src/components/ingestion-progress.tsx)). **Idempotent / re-runnable** : `POST /api/course/[id]/ingest?force=1` purge les artefacts M2 et ré-extrait depuis le PDF disque.
 
 ### Couche IA — [src/lib/anthropic.ts](src/lib/anthropic.ts)
 - Trois modèles configurables par env, choisis selon le besoin de jugement :
@@ -54,12 +60,11 @@ PDF cours + examen → extraction texte → découpage en sections → correspon
   - `VERIFY_MODEL` (Sonnet) — contre-regard : valide l'unicité et l'ancrage de chaque bonne réponse, signale les hallucinations.
   - `QA_MODEL` (Haiku) — Q&A en direct, plus fréquent.
 - `getAnthropic()` est lazy ; la clé ne quitte **jamais** le serveur. **Tous les appels IA passent par des routes API serveur.**
-- `ApiUsageLog` journalise chaque appel (phase, modèle, tokens).
+- `runStructured<T>()` — helper unique : déclare **un seul outil** + `tool_choice` forcé → renvoie l'`input` validé du `tool_use` (pas de parsing de texte libre) et journalise `ApiUsageLog` (phase, modèle, tokens) à chaque appel.
 
-### Heuristiques M1 — PROVISOIRES, remplacées par l'IA en M2
-- [src/lib/sectioning.ts](src/lib/sectioning.ts) : `stripBoilerplate()` (retire pieds/en-têtes CMDQ récurrents) **puis** découpe par titres (numérotés, mots-clés, CAPS), repli par longueur (~2500 car.). Classe en `notion | tableau | diathese | meta`.
-- [src/lib/exam-parse.ts](src/lib/exam-parse.ts) : parsing QCM best-effort — format CMDQ `Question N` + options puces `• A` (repli générique `1.` / `A)`). Source : examen séparé, **ou le PDF du cours** si l'examen y est inclus.
-- Ne pas sur-investir : placeholders pour « afficher quelque chose ». La vraie découpe adaptative et la hiérarchisation (essentiel / utile / secondaire) sont un travail IA prévu en M2.
+### Heuristiques [src/lib/sectioning.ts](src/lib/sectioning.ts) / [src/lib/exam-parse.ts](src/lib/exam-parse.ts) — fallback rapide à l'import
+- `stripBoilerplate()` (retire pieds/en-têtes CMDQ récurrents) est **toujours utilisé** : le pipeline IA s'en sert pour nettoyer le texte avant la découpe. Le découpe-par-titres (`sectionize`) et le parsing QCM (`parseExam`) restent appelés **à l'import** pour une vue immédiate + créer les rangs `examen_officiel` ; **le pipeline M2 purge ensuite ces sections heuristiques et les remplace** par la découpe IA.
+- `parseExam` : format CMDQ `Question N` + options puces `• A` (repli générique `1.` / `A)`). Source : examen séparé, **ou le PDF du cours** si l'examen y est inclus.
 
 ### Données — [prisma/schema.prisma](prisma/schema.prisma)
 `Course` → `Section`, `StudyUnit` (→ `Fiche`, `Progress`), `Question` (→ `ReviewItem`), `OfficialKey`, `ApiUsageLog`. Conventions SQLite à respecter :
@@ -76,6 +81,8 @@ PDF sur disque local sous `storage/courses/<courseId>/`. Les PDF de test réels 
 ## Déploiement
 
 Process Node sur la machine perso (allumée en permanence), exposé par le tunnel Cloudflare existant. Pas d'hébergement tiers, pas de DB distante. `ACCESS_PASSWORD` (env) optionnel pour protéger l'accès public ; vide = app ouverte.
+
+⚠️ **L'ingestion M2 tourne en tâche de fond *dans le même process*** (fire-and-forget après la réponse HTTP). Ça suppose un **serveur Node persistant** (`next start` / `next dev`) — ça ne survivrait pas en serverless (Vercel/Lambda). Comme la cible est justement une machine perso permanente, c'est OK. Si le process redémarre en pleine ingestion, le cours reste en `ingestion` → relancer via `POST /api/course/[id]/ingest?force=1`.
 
 ## Méthode de travail (rappel)
 

@@ -75,3 +75,33 @@ Patterns appris pendant le développement, pour éviter de répéter les erreurs
   documentés par commentaire.
 - Clé API Anthropic : client **lazy** (`getAnthropic()`) pour ne pas échouer à l'import quand la clé est
   absente, et rester strictement côté serveur.
+
+## Pipeline IA (M2)
+
+- **Sortie structurée = tool-use forcé, pas du JSON en texte libre.** `runStructured()` déclare **un seul
+  outil** + `tool_choice: { type:"tool", name }` et lit l'`input` validé du bloc `tool_use`. Zéro parsing
+  fragile, et le modèle est contraint au schéma. Types SDK 0.100.1 : `Anthropic.Messages.Tool.InputSchema`
+  et `Anthropic.Messages.Usage`. Comme les schémas locaux sont en `as const` (`required` devient un tuple
+  *readonly*), typer le param `schema` en `Record<string, unknown>` et **caster** `as
+  Anthropic.Messages.Tool.InputSchema` au point d'appel SDK (sinon erreur readonly→mutable).
+- **Ne PAS faire ré-émettre le texte des sections au modèle** (coûteux + risque de paraphrase). Envoyer le
+  cours en **lignes numérotées** et demander des **plages** (`ligneDebut/ligneFin`) ; trancher le texte
+  verbatim côté serveur. Sortie compacte, ancrage fidèle.
+- **Indexer, ne pas matcher par texte.** Pour relier réponses↔questions et réponses↔sections, passer des
+  index (`#0..n`) et remapper vers les ids DB. Évite le matching par énoncé (fragile, doublons). Les rangs
+  `examen_officiel` créés à l'import sont **réutilisés** par le pipeline (pas de `numero` en base).
+- **Ingestion = tâche de fond in-process.** L'import `await` juste le passage en `statut=ingestion` puis
+  lance `runIngestion` **sans l'attendre** (`void …catch`). La promesse survit à la réponse HTTP **parce que
+  le process Node est permanent** (`next dev`/`next start`) — pas en serverless. La page cours **poll**
+  `GET …/status`. Le job ne **jette jamais** : il écrit l'erreur dans `Course.statut="erreur"` +
+  `erreurMessage`, et `?force=1` relance proprement (purge + ré-extraction depuis le PDF disque).
+- **Le pipeline purge puis remplace les sections heuristiques** de l'import. Donc créer ces sections à
+  l'import sert juste de vue immédiate/fallback ; `stripBoilerplate` reste utile (nettoyage avant la découpe IA).
+- **Barre de progression « réelle » sans sur-ingénierie** : `progressPct` par bornes d'étape (5/45/65/88/100)
+  + `etapeIngestion` (label). Pas de sous-progression fine ; les `counts` (sections/questions/unités) montent
+  visiblement pendant la génération.
+- **Coût d'une ingestion** (108 p., Opus ingestion + Sonnet vérif) : ~27 appels, ~279k in / 74k out tokens,
+  ~13 min, ~8 $. **Batching** indispensable (fiches par lots de 4, examen blanc à partir des fiches plutôt
+  que du cours brut, vérif par lots de 12) — sinon des dizaines d'appels en plus.
+- **Inspection DB hors Next** : `node --env-file=.env script.mjs` depuis la racine (résout `@prisma/client`
+  via le `node_modules` du projet) ; ne pas committer le script jetable.

@@ -21,6 +21,10 @@ model Course {
   dateDebut       DateTime @default(now())
   // statut : nouveau | extraction | ingestion | verification | pret | erreur
   statut          String   @default("nouveau")
+  // Progression de l'ingestion IA (M2) : label d'étape + % pour la barre de progression.
+  etapeIngestion  String?
+  progressPct     Int      @default(0)
+  erreurMessage   String?
   cheminPdfCours  String
   // Optionnel : certains cours incluent l'examen dans le PDF du cours (pas de fichier séparé).
   cheminPdfExamen String?

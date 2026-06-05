@@ -6,6 +6,7 @@ import { extractPdf } from "@/lib/pdf";
 import { sectionize } from "@/lib/sectioning";
 import { parseExam } from "@/lib/exam-parse";
 import { courseDir } from "@/lib/paths";
+import { triggerIngestion } from "@/lib/ingest";
 
 export const runtime = "nodejs";
 export const maxDuration = 120;
@@ -110,11 +111,15 @@ export async function POST(req: NextRequest) {
           cheminPdfCours,
           cheminPdfExamen,
           title: titreRaw ?? deriveTitle(coursPdf.name, coursExtraction.info),
-          // M1 : pas d'ingestion IA encore → on marque "pret" (provisoire).
-          statut: "pret",
+          // Sections heuristiques + questions posées ; le pipeline IA (M2) prend le relais.
+          statut: "ingestion",
         },
       }),
     ]);
+
+    // Déclenche l'ingestion IA en tâche de fond (découpe adaptative, hiérarchisation,
+    // déduction des réponses, fiches/quiz, vérification). La page cours suit la progression.
+    await triggerIngestion(course.id);
 
     return NextResponse.json({
       courseId: course.id,
