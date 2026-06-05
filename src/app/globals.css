@@ -94,6 +94,81 @@
   }
 }
 
+/* ────────────────────────────────────────────────────────────────────────
+   .fiche-prose — lecture d'une fiche de synthèse (Markdown rendu en RSC).
+   Source Serif 4 pour le corps (DESIGN.md : lecture des fiches en serif), titres
+   en Geist, accents sur l'unique vert. Les tableaux (besoins particuliers, aliments
+   riches — cahier §10) sont mis en forme ici car ils portent des réponses d'examen.
+   ──────────────────────────────────────────────────────────────────────── */
+.fiche-prose {
+  @apply font-serif text-[0.975rem] leading-relaxed text-foreground/90;
+}
+.fiche-prose > :first-child {
+  margin-top: 0;
+}
+.fiche-prose h1,
+.fiche-prose h2,
+.fiche-prose h3,
+.fiche-prose h4 {
+  @apply font-sans font-semibold tracking-tight text-foreground;
+}
+.fiche-prose h1 {
+  @apply mt-6 mb-3 text-xl;
+}
+.fiche-prose h2 {
+  @apply mt-6 mb-2.5 text-lg;
+}
+.fiche-prose h3 {
+  @apply mt-5 mb-2 text-base;
+}
+.fiche-prose h4 {
+  @apply mt-4 mb-1.5 text-[0.95rem];
+}
+.fiche-prose p {
+  @apply my-3;
+}
+.fiche-prose strong {
+  @apply font-semibold text-foreground;
+}
+.fiche-prose a {
+  @apply text-primary underline underline-offset-2;
+}
+.fiche-prose ul {
+  @apply my-3 list-disc space-y-1.5 pl-5;
+}
+.fiche-prose ol {
+  @apply my-3 list-decimal space-y-1.5 pl-5;
+}
+.fiche-prose li {
+  @apply pl-1 marker:text-muted-foreground;
+}
+.fiche-prose li > ul,
+.fiche-prose li > ol {
+  @apply my-1.5;
+}
+.fiche-prose blockquote {
+  @apply my-3 border-l-2 border-primary/40 pl-3 text-muted-foreground italic;
+}
+.fiche-prose code {
+  @apply rounded bg-muted px-1.5 py-0.5 font-mono text-[0.85em];
+}
+.fiche-prose hr {
+  @apply my-5 border-border;
+}
+.fiche-prose table {
+  @apply my-4 block w-full overflow-x-auto border-collapse text-[0.9rem];
+}
+.fiche-prose th,
+.fiche-prose td {
+  @apply border border-border px-3 py-2 text-left align-top;
+}
+.fiche-prose thead th {
+  @apply bg-muted font-sans font-medium text-foreground;
+}
+.fiche-prose tbody tr:nth-child(even) {
+  @apply bg-muted/40;
+}
+
 /* Respect de prefers-reduced-motion (DESIGN.md §Accessibility) : les animations
    ne portent jamais d'information seule, on peut donc les neutraliser sans perte. */
 @media (prefers-reduced-motion: reduce) {

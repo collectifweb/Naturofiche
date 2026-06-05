@@ -16,6 +16,7 @@ Suivi des jalons : [`tasks/todo.md`](./tasks/todo.md).
 - **Design system maison** (thème clair) : papier chaud + vert herbacé, polices Geist / Source Serif 4 — voir [DESIGN.md](./DESIGN.md) et [PRODUCT.md](./PRODUCT.md)
 - **Prisma 6** + **SQLite** (fichier local `prisma/dev.db`)
 - **API Anthropic** (`@anthropic-ai/sdk`), modèles configurables via `.env` — **pipeline d'ingestion branché** (M2, sorties structurées par tool-use)
+- **react-markdown** + **remark-gfm** — rendu des fiches (markdown + tableaux GFM) côté serveur (M3)
 - Extraction PDF : **pdf-parse** (v1, texte sélectionnable, pas d'OCR)
 - PWA installable (manifest + service worker), pensée pour le tunnel Cloudflare
 
@@ -63,15 +64,19 @@ src/
     layout.tsx               # shell + polices Geist/Source Serif + PWA + toaster
     page.tsx                 # accueil (cours actif)
     import/page.tsx          # écran d'import (PDF cours + examen OPTIONNEL + délai)
-    course/[id]/page.tsx     # progression d'ingestion OU parcours hiérarchisé (sections, réponses, fiches)
+    course/[id]/page.tsx     # tableau de bord d'étude (plan + fiches) OU progression d'ingestion
+    course/[id]/fiche/[unitId]/page.tsx  # lecture d'une fiche (markdown) + mini-quiz interactif (M3)
     login/page.tsx           # garde d'accès optionnelle
     api/import/route.ts      # upload → extraction → sections/questions → déclenche l'ingestion IA
     api/course/[id]/ingest/  # (re)lance le pipeline (fire-and-forget, ?force=1)
     api/course/[id]/status/  # avancement de l'ingestion (polling)
+    api/course/[id]/progress/ # enregistre la complétion d'une fiche (+ score) → fiche suivante (M3)
     api/login/route.ts       # pose le cookie d'accès
   components/
     ui/*                     # shadcn (button, card, chip, input…) — chip = signature
     ingestion-progress.tsx   # barre de progression + polling + relance (M2)
+    fiche-markdown.tsx       # rendu markdown des fiches (react-markdown + remark-gfm, RSC) (M3)
+    quiz-runner.tsx          # mini-quiz interactif : correction immédiate + progression (M3)
     sw-register.tsx          # enregistrement du service worker (prod)
   lib/
     prisma.ts                # singleton Prisma
@@ -80,6 +85,7 @@ src/
     exam-parse.ts            # parsing QCM léger (fallback import)
     anthropic.ts             # client Claude (lazy) + runStructured (tool-use) + config modèles
     ingest/                  # pipeline IA M2 : pipeline · structure · answers · generate · verify · progress
+    plan.ts                  # moteur de plan d'étude dérivé (rythme, recalage des jours sautés) — M3, pur
     auth.ts                  # token de la garde d'accès
     paths.ts                 # chemins de stockage des PDF
   proxy.ts                   # gate optionnelle si ACCESS_PASSWORD (Next 16)
@@ -91,12 +97,13 @@ docs/                        # PDF de cours de test (gitignorés)
 
 ## État
 
-**M1 + M2 livrés et validés** sur le cours de référence F-354.
+**M1 + M2 + M3 livrés et validés** sur le cours de référence F-354.
 
 - **M1** — socle : import (examen optionnel), extraction PDF, découpage heuristique, PWA, garde d'accès, design system.
 - **M2** — **pipeline d'ingestion IA branché** ([`src/lib/ingest/`](./src/lib/ingest/)) : découpe adaptative + hiérarchisation essentiel/utile/secondaire, correspondance examen↔sections, déduction des réponses ancrées, génération fiches + mini-quiz + examen blanc, **agent de vérification distinct**, barre de progression réelle. Tourne une fois par cours, en tâche de fond, avec suivi de l'usage API.
+- **M3** — **plan d'étude + étude quotidienne** ([`src/lib/plan.ts`](./src/lib/plan.ts)) : rythme **dérivé** non bloquant (recalage automatique des jours sautés, plafond jamais dépassé), tableau de bord (jour, progression, lot du jour), lecture des fiches en markdown (tableaux GFM) et **mini-quiz interactif** avec correction immédiate + enregistrement de la complétion. **Aucune migration.**
 
-Prochaine étape : **M3** (plan d'étude + étude quotidienne). Voir [`tasks/todo.md`](./tasks/todo.md).
+Prochaine étape : **M4** (répétition espacée Leitner + examen blanc noté). Voir [`tasks/todo.md`](./tasks/todo.md).
 
 > L'ingestion IA tourne **en tâche de fond dans le process Node** (fire-and-forget après l'import) : ça
 > suppose un serveur permanent (`next start`/`next dev`), pas du serverless. La page cours suit la

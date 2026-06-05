@@ -94,9 +94,25 @@ Pipeline [src/lib/ingest/](../src/lib/ingest/) en **4 étapes**, tâche de fond 
 - 2ᵉ passe de régénération Opus pour les questions `rejete` persistantes.
 - Audit d'hallucination dédié des fiches (section source vs contenu).
 
-## M3 — Plan d'étude + étude quotidienne
-- Délai configurable, rythme non bloquant, recalage si jours sautés (jamais au-delà du plafond)
-- Fiche du jour + mini-quiz + progression
+## M3 — Plan d'étude + étude quotidienne ✅ livré et validé
+
+Rythme **dérivé** (recalculé à chaque rendu, jamais stocké) + lecture de fiche + mini-quiz interactif. **Aucune migration** (tout le modèle existait déjà).
+
+- [x] **Moteur de plan** [src/lib/plan.ts](../src/lib/plan.ts) (`computePlan`, pur) : jour courant, densité recompactée (`ceil(restantes/joursRestants)`), affectation des unités incomplètes aux jours, échéance, rythme (à jour/avance/retard/terminé). Recalage des jours sautés **automatique et sans écriture**.
+- [x] **Rendu markdown** : `react-markdown` + `remark-gfm` (tableaux), [FicheMarkdown](../src/components/fiche-markdown.tsx) (RSC) + classe `.fiche-prose` ([globals.css](../src/app/globals.css), lecture serif).
+- [x] **Mini-quiz interactif** [QuizRunner](../src/components/quiz-runner.tsx) (client) : sélection → correction immédiate + justification (renvoi à la fiche) → enregistrement complétion + score.
+- [x] **Endpoint** `POST /api/course/[id]/progress` ([route](../src/app/api/course/%5Bid%5D/progress/route.ts)) : upsert `Progress` (`completeLe`+`scoreQuiz`) + renvoie la fiche incomplète suivante.
+- [x] **Page fiche** [/course/[id]/fiche/[unitId]](../src/app/course/%5Bid%5D/fiche/%5BunitId%5D/page.tsx) : fil d'Ariane, fiche markdown, notions-clés, mini-quiz, navigation préc./suiv.
+- [x] **Tableau de bord** [/course/[id]](../src/app/course/%5Bid%5D/page.tsx) : en-tête plan + « Continuer l'étude » + fiches groupées par jour effectif + référence (sections/examen) repliée. Home enrichie (statut plan + deep-link « Continuer »).
+- [x] `npm run build` vert + `eslint` clean + `tsc` OK.
+
+### Review M3 (vérif sur F-354 déjà ingéré, 47 unités, délai 30)
+- **Tableau de bord** : « Jour 1 / 30 », lot du jour (≈ 2 fiches : 47/30), échéance, rythme « à jour », bouton « Continuer ».
+- **Page fiche** : markdown rendu **avec tableaux GFM** (besoins particuliers, aliments riches — cahier §10 : 1 `<table>`, 3 `<th>`, 26 `<td>`), mini-quiz interactif, nav préc./suiv.
+- **Complétion** : `POST …/progress` → `Progress.completeLe`+`scoreQuiz=100` écrits, `prochaineFicheId` renvoyé pour enchaîner. (Reset après test → état post-ingestion vierge.)
+- **Recalage §12 prouvé** : rétro-datage `dateDebut` de 10 j → « Jour 11 / 30 », densité **1 → 3 fiches/jour** (`ceil(47/20)`), échéance = start+29 **non repoussée** (plafond 30 j respecté). `dateDebut` restauré.
+
+**Limites assumées M3** : l'examen blanc (réservoir déjà généré en M2) n'est pas encore **passable/noté** — c'est M4. Le délai est fixé à l'import (édition post-import = amélioration optionnelle). Pas de bascule « mode révision » de fin de parcours (Leitner = M4).
 
 ## M4 — Répétition espacée + examen blanc
 - Boîtes de Leitner (ReviewItem), bascule mode révision en fin de parcours

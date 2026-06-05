@@ -16,6 +16,7 @@ Mono-utilisateur, **un seul cours actif** à la fois, 100 % local derrière un t
 - **Design system appliqué** (thème **clair only**) : papier chaud + **un seul** vert herbacé ; polices **Geist** (UI) / **Source Serif 4** (lecture des fiches) / **Geist Mono**. Tokens `oklch` dans [globals.css](src/app/globals.css), composant signature [Chip](src/components/ui/chip.tsx). Source de vérité : [DESIGN.md](DESIGN.md) + [PRODUCT.md](PRODUCT.md).
 - **pdf-parse** (v1 épinglé) — extraction texte (PDF au texte sélectionnable, pas d'OCR)
 - **@anthropic-ai/sdk** — ingestion IA **branchée** (pipeline M2, [src/lib/ingest/](src/lib/ingest/)) ; sorties structurées par **tool-use forcé** ([`runStructured`](src/lib/anthropic.ts))
+- **react-markdown** + **remark-gfm** — rendu des fiches markdown (tableaux GFM) **côté serveur** ([FicheMarkdown](src/components/fiche-markdown.tsx), classe `.fiche-prose`)
 - Alias d'import : `@/*` → `./src/*` ; util `cn()` dans [src/lib/utils.ts](src/lib/utils.ts)
 
 ## Commandes
@@ -35,11 +36,11 @@ npx prisma studio                     # explorer la DB
 
 ## État d'avancement (jalons)
 
-**M1 + M2 livrés ET validés** sur F-354. M1 = socle (import, extraction, garde d'accès, PWA, design system). **M2 = pipeline d'ingestion IA branché et validé en live** : découpe adaptative + hiérarchisation essentiel/utile/secondaire, correspondance examen↔sections, déduction des réponses ancrées, génération fiches + mini-quiz + examen blanc, **agent de vérification distinct**, barre de progression réelle. **Prochaine étape : M3** (plan d'étude + étude quotidienne, en attente du plan validé).
+**M1 + M2 + M3 livrés ET validés** sur F-354. M1 = socle (import, extraction, garde d'accès, PWA, design system). **M2 = pipeline d'ingestion IA branché et validé en live** : découpe adaptative + hiérarchisation essentiel/utile/secondaire, correspondance examen↔sections, déduction des réponses ancrées, génération fiches + mini-quiz + examen blanc, **agent de vérification distinct**, barre de progression réelle. **M3 = plan d'étude + étude quotidienne** : rythme **dérivé** non bloquant avec recalage automatique des jours sautés, tableau de bord, lecture des fiches (markdown + tableaux) et mini-quiz interactif avec progression. **Prochaine étape : M4** (répétition espacée Leitner + examen blanc noté).
 
 - **M1** socle : Next/Prisma/SQLite, écran d'import, extraction PDF, affichage des sections. *(validé : convention `proxy.ts` Next 16 **pas** `middleware.ts`)*
 - **M2** ✅ pipeline d'ingestion IA ([src/lib/ingest/](src/lib/ingest/)) + agent de vérification. Run live F-354 : **57 sections** (29 essentiel / 18 utile / 2 secondaire / 8 méta), **20/20 questions d'examen** déduites + ancrées (19 validées, 1 flaggée par le vérificateur), **47 fiches**, 94 quiz + 22 examen blanc, **27 appels API** (~279k in / 74k out). `npm run build` vert.
-- **M3** plan d'étude (délai configurable, rythme non bloquant, recalage si jours sautés) + étude quotidienne.
+- **M3** ✅ plan d'étude + étude quotidienne. Moteur de plan **dérivé** ([src/lib/plan.ts](src/lib/plan.ts), `computePlan`, sans IA ni écriture) : jour courant, densité recompactée (recalage des jours sautés, plafond jamais dépassé), rythme à jour/avance/retard. Page fiche ([/course/[id]/fiche/[unitId]](src/app/course/%5Bid%5D/fiche/%5BunitId%5D/page.tsx)) : fiche markdown (react-markdown + remark-gfm, tableaux), notions-clés, mini-quiz interactif ([QuizRunner](src/components/quiz-runner.tsx)) avec correction immédiate ; complétion via `POST /api/course/[id]/progress`. **Aucune migration**. Validé F-354 (47 unités ; recalage prouvé : jour 1→11 ⇒ densité 1→3/j, échéance non repoussée).
 - **M4** répétition espacée (Leitner) + examen blanc noté.
 - **M5** Q&A avec source affichée, import du corrigé officiel, suivi de l'usage API.
 
@@ -53,6 +54,11 @@ PDF cours + examen → extraction texte → **4 étapes IA** → parcours prêt.
 4. **`verify.ts`** (Sonnet, **modèle distinct**) — verdict par question : `valide` / `corrige` (applique la correction) / `rejete` (flaggé « à vérifier », exclu, **sans bloquer** le cours).
 
 **Exécution en tâche de fond in-process** : l'import déclenche `triggerIngestion` (fire-and-forget) et rend la main ; le pipeline tourne dans le process Node permanent. `Course.statut` (`nouveau | extraction | ingestion | verification | pret | erreur`) + `etapeIngestion`/`progressPct` suivent l'avancement ; la page cours **poll** `GET /api/course/[id]/status` ([IngestionProgress](src/components/ingestion-progress.tsx)). **Idempotent / re-runnable** : `POST /api/course/[id]/ingest?force=1` purge les artefacts M2 et ré-extrait depuis le PDF disque.
+
+### Plan d'étude & étude quotidienne (M3) — [src/lib/plan.ts](src/lib/plan.ts)
+Le rythme est **dérivé à chaque rendu, jamais stocké**. `computePlan(course, units)` (pur, sans IA ni DB) calcule depuis `dateDebut` (jour 1), le plafond `delaiJours` et l'état de complétion : `jourCourant`, `densite = ceil(restantes / joursRestants)` (fiches/jour à tenir), affectation des unités incomplètes aux jours, `echeance`, et le statut de rythme (`a_jour | en_avance | en_retard | termine`). **Le recalage des jours sautés en découle gratuitement** : moins de jours restants ⇒ densité plus haute, l'échéance n'est jamais repoussée — pas de cron, pas de mutate-on-read. M2 avait posé `StudyUnit.jourCible` en répartition provisoire ; le moteur le **remplace** pour la vue vivante.
+- **Tableau de bord** [src/app/course/[id]/page.tsx](src/app/course/%5Bid%5D/page.tsx) (cours `pret`) : en-tête plan (jour, barre de complétion, lot du jour, rythme, échéance) + bouton **« Continuer l'étude »** (1re fiche incomplète) + fiches **groupées par jour effectif** ; sections + questions d'examen relégués en **référence repliée** (`<details>`, tout reste accessible — §5.3). La home affiche le même statut + deep-link « Continuer ».
+- **Page fiche** [src/app/course/[id]/fiche/[unitId]/page.tsx](src/app/course/%5Bid%5D/fiche/%5BunitId%5D/page.tsx) : fiche markdown rendue **côté serveur** (FicheMarkdown, **tableaux** GFM) + notions-clés (`Chip`) + mini-quiz interactif ([QuizRunner](src/components/quiz-runner.tsx), client) : sélection → **correction immédiate** (la justification renvoie à la fiche) → `POST /api/course/[id]/progress` enregistre `Progress.completeLe` + `scoreQuiz` (% du quiz) et renvoie la **fiche suivante** pour enchaîner. Complétion = validation du quiz.
 
 ### Couche IA — [src/lib/anthropic.ts](src/lib/anthropic.ts)
 - Trois modèles configurables par env, choisis selon le besoin de jugement :

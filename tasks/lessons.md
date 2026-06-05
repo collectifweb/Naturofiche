@@ -103,5 +103,26 @@ Patterns appris pendant le développement, pour éviter de répéter les erreurs
 - **Coût d'une ingestion** (108 p., Opus ingestion + Sonnet vérif) : ~27 appels, ~279k in / 74k out tokens,
   ~13 min, ~8 $. **Batching** indispensable (fiches par lots de 4, examen blanc à partir des fiches plutôt
   que du cours brut, vérif par lots de 12) — sinon des dizaines d'appels en plus.
-- **Inspection DB hors Next** : `node --env-file=.env script.mjs` depuis la racine (résout `@prisma/client`
-  via le `node_modules` du projet) ; ne pas committer le script jetable.
+- **Inspection DB hors Next** : `node --env-file=.env script.mjs` **depuis la racine du projet** (résout
+  `@prisma/client` via le `node_modules` du projet) ; un script placé dans `/tmp` échoue en
+  `ERR_MODULE_NOT_FOUND`. Ne pas committer le script jetable (le supprimer après).
+
+## Plan d'étude & étude quotidienne (M3)
+
+- **Plan dérivé > plan stocké.** Recalculer le rythme à chaque rendu (`computePlan`, pur) plutôt que de
+  stocker/mettre à jour `jourCible` : le **recalage des jours sautés tombe gratuitement** de
+  `densite = ceil(restantes / joursRestants)` (moins de jours restants ⇒ densité plus haute, échéance
+  jamais repoussée). Zéro cron, zéro mutate-on-read (un GET ne doit pas écrire). M2 avait posé `jourCible`
+  en provisoire ; M3 ne le touche pas, il dérive le jour effectif.
+- **Diff de jours insensible à l'heure.** `dateDebut` est posé à l'`import` (avec son heure) ; pour que le
+  « jour courant » ne saute pas selon l'heure, comparer des **dates à minuit** :
+  `Math.floor(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()) / 86_400_000)` puis différence d'index.
+- **Tableaux markdown = `remark-gfm` obligatoire.** Sans le plugin, les tables `| … |` du cours (besoins
+  particuliers, aliments riches — porteuses de réponses d'examen) s'affichent en texte brut. `react-markdown`
+  se rend **en RSC** (aucun poids client) ; styles dans une classe `.fiche-prose` (globals.css) plutôt que le
+  plugin `@tailwindcss/typography`, pour rester sur la charte (lecture serif, un seul vert, tables sur tokens).
+- **Options de quiz = `<button>` nu, pas le composant `Button`.** Le `Button` base-nova porte des styles
+  d'action ; un choix de QCM a besoin d'états propres (sélectionné / bon / mauvais / révélé) → bouton simple
+  stylé à la main avec les tokens `green-wash`/`green-ink` (bon) et `brick-wash`/`destructive` (mauvais choisi).
+- **Vérifier un recalage temporel sans voyager dans le temps** : rétro-dater `Course.dateDebut` via un script
+  Prisma jetable, curler la page, vérifier le jour courant + la densité, puis **restaurer** la date.
