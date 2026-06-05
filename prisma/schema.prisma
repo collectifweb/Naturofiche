@@ -22,7 +22,8 @@ model Course {
   // statut : nouveau | extraction | ingestion | verification | pret | erreur
   statut          String   @default("nouveau")
   cheminPdfCours  String
-  cheminPdfExamen String
+  // Optionnel : certains cours incluent l'examen dans le PDF du cours (pas de fichier séparé).
+  cheminPdfExamen String?
   ingestModel     String?
   actif           Boolean  @default(true) // un seul cours "actif" affiché en home
   createdAt       DateTime @default(now())

@@ -28,10 +28,12 @@ export async function POST(req: NextRequest) {
     const titreRaw = (form.get("titre") as string | null)?.trim() || null;
     const codeRaw = (form.get("code") as string | null)?.trim() || null;
 
-    if (!(coursPdf instanceof File) || !(examenPdf instanceof File)) {
-      return NextResponse.json({ error: "Les deux PDF (cours et examen) sont requis." }, { status: 400 });
+    if (!(coursPdf instanceof File) || coursPdf.size === 0) {
+      return NextResponse.json({ error: "Le PDF du cours est requis." }, { status: 400 });
     }
-    if (!looksLikePdf(coursPdf) || !looksLikePdf(examenPdf)) {
+    // Examen optionnel : certains cours l'incluent dans le PDF du cours.
+    const hasExamen = examenPdf instanceof File && examenPdf.size > 0;
+    if (!looksLikePdf(coursPdf) || (hasExamen && !looksLikePdf(examenPdf as File))) {
       return NextResponse.json({ error: "Les fichiers doivent être des PDF." }, { status: 400 });
     }
     const delaiJours = parseInt(String(delaiRaw ?? ""), 10);
@@ -51,7 +53,7 @@ export async function POST(req: NextRequest) {
         delaiJours,
         statut: "extraction",
         cheminPdfCours: "",
-        cheminPdfExamen: "",
+        cheminPdfExamen: null,
         actif: true,
       },
     });
@@ -61,19 +63,26 @@ export async function POST(req: NextRequest) {
     const dir = courseDir(course.id);
     await mkdir(dir, { recursive: true });
     const cheminPdfCours = path.join(dir, "cours.pdf");
-    const cheminPdfExamen = path.join(dir, "examen.pdf");
-    await writeFile(cheminPdfCours, await fileToBuffer(coursPdf));
-    await writeFile(cheminPdfExamen, await fileToBuffer(examenPdf));
+    const coursBuffer = await fileToBuffer(coursPdf);
+    await writeFile(cheminPdfCours, coursBuffer);
 
-    // Extraction du texte des deux PDF.
-    const [coursExtraction, examenExtraction] = await Promise.all([
-      extractPdf(await fileToBuffer(coursPdf)),
-      extractPdf(await fileToBuffer(examenPdf)),
-    ]);
+    let cheminPdfExamen: string | null = null;
+    let examenBuffer: Buffer | null = null;
+    if (hasExamen) {
+      cheminPdfExamen = path.join(dir, "examen.pdf");
+      examenBuffer = await fileToBuffer(examenPdf as File);
+      await writeFile(cheminPdfExamen, examenBuffer);
+    }
 
-    // Découpage structurel provisoire (M1) + parsing examen léger.
+    // Extraction du texte : cours toujours, examen seulement si fourni.
+    const coursExtraction = await extractPdf(coursBuffer);
+    const examenExtraction = examenBuffer ? await extractPdf(examenBuffer) : null;
+
+    // Découpage structurel provisoire (M1) + parsing QCM. Sans fichier d'examen
+    // séparé, on cherche les questions DANS le PDF du cours (l'examen y est parfois
+    // inclus) ; les exercices ouverts (sans A/B/C/D) sont naturellement ignorés.
     const drafts = sectionize(coursExtraction.text);
-    const questions = parseExam(examenExtraction.text);
+    const questions = parseExam((examenExtraction ?? coursExtraction).text);
 
     await prisma.$transaction([
       prisma.section.createMany({
@@ -112,7 +121,8 @@ export async function POST(req: NextRequest) {
       sections: drafts.length,
       questions: questions.length,
       coursPages: coursExtraction.numPages,
-      examenPages: examenExtraction.numPages,
+      examenPages: examenExtraction?.numPages ?? null,
+      examenSepare: hasExamen,
     });
   } catch (err) {
     console.error("[import] échec :", err);

@@ -34,11 +34,13 @@ export default function ImportPage() {
     const data = new FormData(form);
 
     const cours = data.get("coursPdf") as File | null;
-    const examen = data.get("examenPdf") as File | null;
-    if (!cours || cours.size === 0 || !examen || examen.size === 0) {
-      toast.error("Dépose le PDF du cours ET celui de l'examen.");
+    if (!cours || cours.size === 0) {
+      toast.error("Dépose au moins le PDF du cours.");
       return;
     }
+    // Champ examen vide → on n'envoie pas le fichier (l'examen est peut-être dans le cours).
+    const examen = data.get("examenPdf") as File | null;
+    if (!examen || examen.size === 0) data.delete("examenPdf");
 
     setLoading(true);
     setEtape(0);
@@ -90,8 +92,14 @@ export default function ImportPage() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="examenPdf">PDF de l&apos;examen</Label>
-              <Input id="examenPdf" name="examenPdf" type="file" accept="application/pdf,.pdf" required />
+              <Label htmlFor="examenPdf">
+                PDF de l&apos;examen{" "}
+                <span className="font-normal text-muted-foreground">(optionnel)</span>
+              </Label>
+              <Input id="examenPdf" name="examenPdf" type="file" accept="application/pdf,.pdf" />
+              <p className="text-xs text-muted-foreground">
+                Si l&apos;examen est inclus dans le PDF du cours, laisse vide.
+              </p>
             </div>
 
             <div className="grid grid-cols-2 gap-3">
