@@ -134,7 +134,11 @@ Boîtes de Leitner sur les `quiz_verif` + examen blanc noté. **Aucune migration
 
 **Limites assumées M4** : l'examen blanc est **sans état** (score calculé + affiché, pas d'historique d'essais persisté — évite une migration ; §12 ne demande que le score + verdict). Les `examen_blanc` restent hors Leitner (jeu distinct des `quiz_verif`). La révision porte sur les notions **déjà vues** (les non-vues passent par les fiches).
 
-## M5 — Q&A + corrigé officiel + suivi API
-- Q&A avec indication de source (cours / extérieur)
-- Import du corrigé officiel, comparaison + journalisation des écarts
-- Tableau de suivi de l'usage API
+## M5 — Q&A + corrigé officiel + suivi API  ⏳ à faire (spec prête)
+
+> Spec d'implémentation **autonome** : [tasks/M5-plan.md](M5-plan.md) (à dérouler dans une session fraîche).
+
+- Q&A avec indication de source (cours / extérieur) — §5.6, critère §12
+- Import du corrigé officiel, comparaison + journalisation des écarts (`OfficialKey`) — §5.8
+- Tableau de suivi de l'usage API (`ApiUsageLog`) — §11
+- **Aucune migration** (`OfficialKey` + `ApiUsageLog` existent ; Q&A sans état).
