@@ -47,3 +47,5 @@ next-env.d.ts
 /prisma/dev.db-journal
 # Matériel de cours (PDF CMDQ) — données sensibles, non versionnées
 /docs/*.pdf
+# Artefacts d'outils de design
+/.impeccable
