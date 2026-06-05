@@ -174,6 +174,7 @@ Objectif : enrichir le Q&A sans contaminer le mode d'étude par défaut.
 - [x] **Usage** : la page `/usage` doit refléter l'appel `qa` web via `ApiUsageLog`.
 - [x] **Validation** : lint, `tsc --noEmit`, build, smoke test live F-354.
 - [x] **Docs + git** : mettre à jour README/CLAUDE/lessons/todo, commit local sans push automatique.
+- [x] **Q&A dans les fiches** : rendre `QaPanel` réutilisable en mode compact et l'afficher directement sur `/course/[id]/fiche/[unitId]`, avant le mini-quiz.
 
 ### Review M5bis (vérif sur F-354)
 - **Mode explicite** : `/course/cmq0xcvix0000osbydme0whft/qa` garde `Cours seulement` par défaut et propose `Cours + web` comme choix volontaire.
@@ -183,3 +184,8 @@ Objectif : enrichir le Q&A sans contaminer le mode d'étude par défaut.
 - **Validation technique** : `npm run lint`, `npx tsc --noEmit`, `npm run build` verts sous Node 20.
 
 **Limites assumées M5bis** : pas de persistance d'historique web, pas de coût web dédié en DB (le schéma ne stocke que tokens/appels par phase), et sources web contraintes à des domaines fiables plutôt qu'à tout le web.
+
+### Review post-M5bis — Q&A contextuel dans les fiches
+- **Usage réel** : le module Q&A est disponible directement pendant la lecture d'une fiche révisable, parce que les questions apparaissent à ce moment-là.
+- **Implémentation** : [QaPanel](../src/components/qa-panel.tsx) accepte maintenant un mode `compact` + textes configurables ; la page fiche l'insère entre les notions-clés et le mini-quiz.
+- **Validation technique** : `npm run lint` et `npx tsc --noEmit` verts sous Node 20.

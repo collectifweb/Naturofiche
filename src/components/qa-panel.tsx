@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useState } from "react";
+import { FormEvent, useId, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { toast } from "sonner";
@@ -25,6 +25,13 @@ interface Message {
   result: QaResult;
 }
 
+interface QaPanelProps {
+  courseId: string;
+  compact?: boolean;
+  placeholder?: string;
+  emptyText?: string;
+}
+
 const SOURCE_LABEL: Record<Source, string> = {
   cours: "cours",
   exterieur: "complément extérieur",
@@ -37,7 +44,13 @@ const SOURCE_VARIANT: Record<Source, ChipVariant> = {
   mixte: "utile",
 };
 
-export function QaPanel({ courseId }: { courseId: string }) {
+export function QaPanel({
+  courseId,
+  compact = false,
+  placeholder = "Quels sont les signes de carence en zinc ?",
+  emptyText = "Les réponses citeront leur origine : cours, extérieur, ou un mélange des deux.",
+}: QaPanelProps) {
+  const questionId = useId();
   const [question, setQuestion] = useState("");
   const [mode, setMode] = useState<QaMode>("cours");
   const [messages, setMessages] = useState<Message[]>([]);
@@ -74,8 +87,15 @@ export function QaPanel({ courseId }: { courseId: string }) {
   }
 
   return (
-    <div className="space-y-5">
-      <form onSubmit={submit} className="space-y-3 rounded-[var(--radius)] bg-card p-4 ring-1 ring-foreground/10">
+    <div className={compact ? "space-y-4" : "space-y-5"}>
+      <form
+        onSubmit={submit}
+        className={
+          compact
+            ? "space-y-3 rounded-[var(--radius)] bg-card p-3 ring-1 ring-foreground/10"
+            : "space-y-3 rounded-[var(--radius)] bg-card p-4 ring-1 ring-foreground/10"
+        }
+      >
         <div className="grid grid-cols-2 gap-1 rounded-lg bg-muted p-1">
           {(
             [
@@ -97,16 +117,20 @@ export function QaPanel({ courseId }: { courseId: string }) {
             </button>
           ))}
         </div>
-        <label htmlFor="question" className="text-[0.8125rem] font-medium text-muted-foreground">
+        <label htmlFor={questionId} className="text-[0.8125rem] font-medium text-muted-foreground">
           Question
         </label>
         <textarea
-          id="question"
+          id={questionId}
           value={question}
           onChange={(event) => setQuestion(event.target.value)}
-          rows={4}
-          placeholder="Quels sont les signes de carence en zinc ?"
-          className="min-h-28 w-full resize-y rounded-lg border border-border bg-background px-3 py-2 text-base leading-relaxed outline-none transition-colors focus:border-ring focus:ring-3 focus:ring-ring/30"
+          rows={compact ? 3 : 4}
+          placeholder={placeholder}
+          className={
+            compact
+              ? "min-h-24 w-full resize-y rounded-lg border border-border bg-background px-3 py-2 text-base leading-relaxed outline-none transition-colors focus:border-ring focus:ring-3 focus:ring-ring/30"
+              : "min-h-28 w-full resize-y rounded-lg border border-border bg-background px-3 py-2 text-base leading-relaxed outline-none transition-colors focus:border-ring focus:ring-3 focus:ring-ring/30"
+          }
         />
         <Button type="submit" size="lg" disabled={loading || question.trim().length < 3} className="w-full">
           {loading ? "Question en cours…" : "Demander"} <Send />
@@ -120,9 +144,15 @@ export function QaPanel({ courseId }: { courseId: string }) {
       </form>
 
       {messages.length === 0 ? (
-        <div className="rounded-[var(--radius)] bg-card/70 p-5 ring-1 ring-foreground/10">
+        <div
+          className={
+            compact
+              ? "rounded-[var(--radius)] bg-card/70 p-3 ring-1 ring-foreground/10"
+              : "rounded-[var(--radius)] bg-card/70 p-5 ring-1 ring-foreground/10"
+          }
+        >
           <p className="text-sm text-muted-foreground">
-            Les réponses citeront leur origine : cours, extérieur, ou un mélange des deux.
+            {emptyText}
           </p>
         </div>
       ) : (

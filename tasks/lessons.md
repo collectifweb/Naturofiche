@@ -169,6 +169,9 @@ Patterns appris pendant le développement, pour éviter de répéter les erreurs
 
 ## Q&A avec web search (M5bis)
 
+- **Le Q&A doit être au point de lecture.** Une page dédiée est utile comme outil global, mais les vraies
+  questions apparaissent pendant la lecture d'une fiche. Le panneau Q&A doit donc être réutilisable en version
+  compacte dans `/fiche/[unitId]`, avec le même endpoint serveur et le même affichage de sources.
 - **Le web doit rester explicite.** Pour une app d'étude, `cours seulement` est le mode par défaut : c'est la
   vérité attendue à l'examen. `cours + web` sert à vérifier/compléter, pas à remplacer le cours.
 - **Web search = latence et coût à borner.** Utiliser `web_search_20250305` avec `max_uses=1` et un timeout SDK

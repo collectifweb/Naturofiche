@@ -65,7 +65,7 @@ src/
     page.tsx                 # accueil (cours actif)
     import/page.tsx          # écran d'import (PDF cours + examen OPTIONNEL + délai)
     course/[id]/page.tsx     # tableau de bord d'étude (plan + fiches) OU progression d'ingestion
-    course/[id]/fiche/[unitId]/page.tsx  # lecture d'une fiche (markdown) + mini-quiz interactif (M3)
+    course/[id]/fiche/[unitId]/page.tsx  # lecture d'une fiche + Q&A contextuel + mini-quiz (M3/M5bis)
     course/[id]/revision/page.tsx  # révision espacée (Leitner) : notions échues/prioritaires (M4)
     course/[id]/examen/page.tsx  # examen blanc 20 QCM noté /100, seuil 80 % (M4)
     course/[id]/qa/page.tsx      # Q&A sur le cours, source cours/extérieur/mixte (M5)
@@ -86,7 +86,7 @@ src/
     fiche-markdown.tsx       # rendu markdown des fiches (react-markdown + remark-gfm, RSC) (M3)
     quiz-runner.tsx          # mini-quiz interactif (modes fiche|revision) + Leitner (M3/M4)
     exam-runner.tsx          # examen blanc : répondre à tout puis noter /100 (M4)
-    qa-panel.tsx             # Q&A client, historique local et badge source (M5)
+    qa-panel.tsx             # Q&A client, page dédiée + mode compact dans les fiches (M5/M5bis)
     corrige-import.tsx       # parsing local + aperçu avant application du corrigé (M5)
     sw-register.tsx          # enregistrement du service worker (prod)
   lib/
@@ -115,10 +115,10 @@ docs/                        # PDF de cours de test (gitignorés)
 
 - **M1** — socle : import (examen optionnel), extraction PDF, découpage heuristique, PWA, garde d'accès, design system.
 - **M2** — **pipeline d'ingestion IA branché** ([`src/lib/ingest/`](./src/lib/ingest/)) : découpe adaptative + hiérarchisation essentiel/utile/secondaire, correspondance examen↔sections, déduction des réponses ancrées, génération fiches + mini-quiz + examen blanc, **agent de vérification distinct**, barre de progression réelle. Tourne une fois par cours, en tâche de fond, avec suivi de l'usage API.
-- **M3** — **plan d'étude + étude quotidienne** ([`src/lib/plan.ts`](./src/lib/plan.ts)) : rythme **dérivé** non bloquant (recalage automatique des jours sautés, plafond jamais dépassé), tableau de bord (jour, progression, lot du jour), lecture des fiches en markdown (tableaux GFM) et **mini-quiz interactif** avec correction immédiate + enregistrement de la complétion. **Aucune migration.**
+- **M3** — **plan d'étude + étude quotidienne** ([`src/lib/plan.ts`](./src/lib/plan.ts)) : rythme **dérivé** non bloquant (recalage automatique des jours sautés, plafond jamais dépassé), tableau de bord (jour, progression, lot du jour), lecture des fiches en markdown (tableaux GFM), Q&A contextuel dans la fiche et **mini-quiz interactif** avec correction immédiate + enregistrement de la complétion. **Aucune migration.**
 - **M4** — **répétition espacée + examen blanc** ([`src/lib/leitner.ts`](./src/lib/leitner.ts)) : boîtes de Leitner sur les mini-quiz (notions ratées revues vite, maîtrisées espacées), **mode révision** mis en avant en fin de parcours, et **examen blanc** de 20 QCM noté **/100 et /20** au seuil 80 % avec correction renvoyant aux sections. **Aucune migration.**
 - **M5** — **Q&A avec source + corrigé officiel + suivi API** ([`src/lib/qa.ts`](./src/lib/qa.ts), [`src/lib/corrige.ts`](./src/lib/corrige.ts)) : questions en direct via Haiku côté serveur, réponse étiquetée `cours` / `extérieur` / `mixte`, import du corrigé officiel avec correction et journalisation des écarts dans `OfficialKey`, page Usage agrégeant `ApiUsageLog` par phase/modèle. **Aucune migration.**
-- **M5bis** — **Q&A `Cours + web`** : mode explicite dans le panneau Q&A. Le défaut reste `Cours seulement`; le mode web utilise l'outil serveur Anthropic `web_search_20250305`, limité à 1 recherche et à des domaines santé/institutionnels, puis affiche les sources web cliquables.
+- **M5bis** — **Q&A `Cours + web`** : mode explicite dans le panneau Q&A. Le défaut reste `Cours seulement`; le mode web utilise l'outil serveur Anthropic `web_search_20250305`, limité à 1 recherche et à des domaines santé/institutionnels, puis affiche les sources web cliquables. Le panneau est disponible en page dédiée et directement dans chaque fiche révisable.
 
 > L'ingestion IA tourne **en tâche de fond dans le process Node** (fire-and-forget après l'import) : ça
 > suppose un serveur permanent (`next start`/`next dev`), pas du serverless. La page cours suit la

@@ -1,10 +1,11 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ChevronLeft, ChevronRight, CheckCircle2 } from "lucide-react";
+import { ChevronLeft, ChevronRight, CheckCircle2, MessageCircleQuestion } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { Chip } from "@/components/ui/chip";
 import { buttonVariants } from "@/components/ui/button";
 import { FicheMarkdown } from "@/components/fiche-markdown";
+import { QaPanel } from "@/components/qa-panel";
 import { QuizRunner, type QuizQuestion } from "@/components/quiz-runner";
 import { cn } from "@/lib/utils";
 
@@ -111,6 +112,20 @@ export default async function FichePage({
           ))}
         </div>
       )}
+
+      {/* Q&A contextuel : posé ici, quand la question apparaît pendant la lecture. */}
+      <section className="space-y-3 border-t border-border pt-5">
+        <div className="flex items-center gap-2">
+          <MessageCircleQuestion className="size-4 text-primary" aria-hidden />
+          <h2 className="font-heading text-lg font-semibold">Question sur cette fiche</h2>
+        </div>
+        <QaPanel
+          courseId={id}
+          compact
+          placeholder={`Question sur ${unit.titre}`}
+          emptyText="La réponse restera visible ici pendant cette session, avec ses sources."
+        />
+      </section>
 
       {/* Mini-quiz de vérification */}
       <section className="space-y-3">
