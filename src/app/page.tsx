@@ -147,6 +147,14 @@ export default async function Home() {
             >
               Voir le cours
             </Link>
+            {plan?.modeRevision && (
+              <Link
+                href={`/course/${course.id}/examen`}
+                className={buttonVariants({ variant: "ghost", size: "lg", className: "w-full" })}
+              >
+                Examen blanc
+              </Link>
+            )}
             <Link
               href="/import"
               className={buttonVariants({ variant: "ghost", size: "lg", className: "w-full" })}

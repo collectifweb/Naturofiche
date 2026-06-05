@@ -114,9 +114,25 @@ Rythme **dérivé** (recalculé à chaque rendu, jamais stocké) + lecture de fi
 
 **Limites assumées M3** : l'examen blanc (réservoir déjà généré en M2) n'est pas encore **passable/noté** — c'est M4. Le délai est fixé à l'import (édition post-import = amélioration optionnelle). Pas de bascule « mode révision » de fin de parcours (Leitner = M4).
 
-## M4 — Répétition espacée + examen blanc
-- Boîtes de Leitner (ReviewItem), bascule mode révision en fin de parcours
-- Examen blanc 20 QCM noté /100, seuil 80 %, correction renvoyant aux sections
+## M4 — Répétition espacée + examen blanc ✅ livré et validé
+
+Boîtes de Leitner sur les `quiz_verif` + examen blanc noté. **Aucune migration** (`ReviewItem` existait déjà, cascade depuis `Question`).
+
+- [x] **Moteur Leitner** [src/lib/leitner.ts](../src/lib/leitner.ts) (pur) : 5 boîtes, intervalles `[1,2,4,7,12]` j, `prochaineBoite` (+1 si juste / retour 1 si faux), `dateEcheance`, `estEchu`, `prioriserRevision` (boîtes basses puis plus anciennes).
+- [x] **Endpoint** `POST /api/course/[id]/review` ([route](../src/app/api/course/%5Bid%5D/review/route.ts)) : upsert `ReviewItem` (boîte, échéance, historique) par notion ; renvoie le nb d'échus.
+- [x] **QuizRunner généralisé** ([quiz-runner](../src/components/quiz-runner.tsx)) : prop `mode` `fiche | revision` — alimente Leitner dans les deux modes ; mode fiche garde la complétion (progress).
+- [x] **Page révision** [/course/[id]/revision](../src/app/course/%5Bid%5D/revision/page.tsx) : sert les notions échues (sinon les prioritaires) en lot de 10, mode `revision`.
+- [x] **Examen blanc noté** [ExamRunner](../src/components/exam-runner.tsx) + page [/course/[id]/examen](../src/app/course/%5Bid%5D/examen/page.tsx) : 20 QCM mélangés, répondre à tout → **score /100 + /20 + réussite/échec (seuil 80 %)** + correction renvoyant à la section.
+- [x] **Mode révision** : `plan.modeRevision` (derniers ~20 % du délai ou terminé) → CTA « Réviser » (badge échus) + « Examen blanc » sur le dashboard, mis en avant ; lien examen sur la home.
+- [x] `npm run build` vert + `eslint` + `tsc`.
+
+### Review M4 (vérif sur F-354 ingéré)
+- **Leitner** : `POST …/review` (1 juste / 1 faux) → `ReviewItem` créés (boîte 2 / boîte 1), échéance = +2 j / +1 j, `historique` rempli. Re-tests OK.
+- **Mode révision** : `dateDebut` rétro-daté à J-24 → « Jour 25 / 30 » + encart « Dernière ligne droite », révision en CTA primaire. `/revision` sert les notions priorisées. Date restaurée.
+- **Examen blanc** : `/examen` → 20 QCM ; score `bons/total` → /100 + /20, verdict ≥ 80 % ; correction + renvoi section.
+- **Cascade** : migration confirme `ReviewItem … ON DELETE CASCADE` → le purge de re-ingestion (`question.deleteMany`) nettoie les `ReviewItem`. ReviewItem de test supprimés (état vierge).
+
+**Limites assumées M4** : l'examen blanc est **sans état** (score calculé + affiché, pas d'historique d'essais persisté — évite une migration ; §12 ne demande que le score + verdict). Les `examen_blanc` restent hors Leitner (jeu distinct des `quiz_verif`). La révision porte sur les notions **déjà vues** (les non-vues passent par les fiches).
 
 ## M5 — Q&A + corrigé officiel + suivi API
 - Q&A avec indication de source (cours / extérieur)

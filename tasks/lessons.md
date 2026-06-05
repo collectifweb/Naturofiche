@@ -126,3 +126,24 @@ Patterns appris pendant le développement, pour éviter de répéter les erreurs
   stylé à la main avec les tokens `green-wash`/`green-ink` (bon) et `brick-wash`/`destructive` (mauvais choisi).
 - **Vérifier un recalage temporel sans voyager dans le temps** : rétro-dater `Course.dateDebut` via un script
   Prisma jetable, curler la page, vérifier le jour courant + la densité, puis **restaurer** la date.
+
+## Répétition espacée & examen blanc (M4)
+
+- **Pas de migration si le modèle anticipait le jalon.** `ReviewItem` était déjà au schéma (posé en M1) et
+  **cascade depuis `Question`** (`onDelete: Cascade`) → le purge de re-ingestion (`question.deleteMany`)
+  nettoie les `ReviewItem` **gratuitement**. Vérifier la cascade par la migration SQL plutôt que par un test
+  destructif (`grep "ReviewItem" prisma/migrations/*/migration.sql | grep CASCADE`).
+- **Créer les `ReviewItem` paresseusement** (au 1ᵉʳ passage d'un quiz), pas en masse à l'ingestion : ça évite
+  de faire apparaître en révision des notions dont la fiche n'a pas encore été lue, et ça colle au sens du
+  cahier (« les notions **vues** réapparaissent »). Boîte de départ après réponse = `prochaineBoite(1, correct)`.
+- **Généraliser plutôt que dupliquer.** Le mini-quiz (correction immédiate) sert aussi la révision : un prop
+  `mode: "fiche" | "revision"` suffit (révision = Leitner sans complétion de fiche). Mais l'**examen blanc** a
+  une interaction différente (répondre à TOUT puis noter) → composant **distinct** (`ExamRunner`), ne pas forcer
+  le même composant. Règle : même interaction → un prop ; interaction différente → composant séparé.
+- **Score calculable côté client = pas de table.** Les `examen_blanc` portent déjà `bonneReponse` ; le score
+  /100 + /20 + verdict 80 % se calcule dans le composant. Garder l'examen **sans état** (pas d'historique
+  d'essais) tant que le cahier ne demande que le score + le verdict — une table = une migration à ne pas payer.
+- **`modeRevision` dérivé** (comme le plan) : `termine || joursRestants ≤ ceil(delaiJours·0,2)`. Sert à
+  **mettre en avant** la révision dans les derniers jours, sans jamais la bloquer le reste du temps.
+- **Tirage varié** d'un examen : `Math.random` est OK dans un composant Server Next (≠ script Workflow où il est
+  interdit) ; `router.refresh()` côté client redéclenche le rendu serveur → nouveau mélange de 20 questions.

@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { CheckCircle2, ArrowRight, CalendarDays } from "lucide-react";
+import { CheckCircle2, ArrowRight, CalendarDays, RefreshCw, GraduationCap } from "lucide-react";
 import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { Chip, type ChipVariant } from "@/components/ui/chip";
@@ -121,7 +121,7 @@ export default async function CoursePage({
   );
 }
 
-function CourseContent({ course }: { course: CourseWithRelations }) {
+async function CourseContent({ course }: { course: CourseWithRelations }) {
   const plan = computePlan(
     course,
     course.studyUnits.map((u) => ({
@@ -132,12 +132,64 @@ function CourseContent({ course }: { course: CourseWithRelations }) {
     })),
   );
 
+  // Notions de révision échues (Leitner) : jamais revues ou échéance passée.
+  const dusRevision = await prisma.reviewItem.count({
+    where: {
+      question: { courseId: course.id, type: "quiz_verif", statutValidation: "valide" },
+      OR: [{ prochaineEcheance: null }, { prochaineEcheance: { lte: new Date() } }],
+    },
+  });
+
   return (
     <>
       <PlanHeader courseId={course.id} plan={plan} />
+      <EtudeActions courseId={course.id} dusRevision={dusRevision} modeRevision={plan.modeRevision} />
       <FichesParcours courseId={course.id} plan={plan} />
       <Reference course={course} />
     </>
+  );
+}
+
+function EtudeActions({
+  courseId,
+  dusRevision,
+  modeRevision,
+}: {
+  courseId: string;
+  dusRevision: number;
+  modeRevision: boolean;
+}) {
+  return (
+    <section className="space-y-2">
+      {modeRevision && (
+        <p className="text-[0.8125rem] text-primary">
+          Dernière ligne droite — révise tes notions et teste-toi à blanc.
+        </p>
+      )}
+      <div className="grid grid-cols-1 gap-2.5 min-[400px]:grid-cols-2">
+        <Link
+          href={`/course/${courseId}/revision`}
+          className={buttonVariants({
+            variant: modeRevision ? "default" : "outline",
+            size: "lg",
+            className: "w-full",
+          })}
+        >
+          <RefreshCw /> Réviser
+          {dusRevision > 0 && (
+            <span className="ml-1 inline-flex items-center rounded-full bg-background/20 px-1.5 text-xs tabular-nums">
+              {dusRevision}
+            </span>
+          )}
+        </Link>
+        <Link
+          href={`/course/${courseId}/examen`}
+          className={buttonVariants({ variant: "outline", size: "lg", className: "w-full" })}
+        >
+          <GraduationCap /> Examen blanc
+        </Link>
+      </div>
+    </section>
   );
 }
 

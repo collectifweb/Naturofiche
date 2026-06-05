@@ -65,6 +65,8 @@ export interface PlanState {
   /** Date du dernier jour du parcours (dateDebut + delaiJours − 1). Jamais dépassée. */
   echeance: Date;
   termine: boolean;
+  /** Derniers ~20 % du délai (ou parcours terminé) : la révision passe au premier plan (§5.5). */
+  modeRevision: boolean;
   rythme: RythmeStatut;
   /** Nombre de fiches de retard (>0 si en retard, sinon 0). */
   retard: number;
@@ -99,6 +101,8 @@ export function computePlan(
   const completes = total - incompletes.length;
   const restantes = incompletes.length;
   const termine = restantes === 0;
+  // Bascule en mode révision (§5.5) sur les derniers ~20 % du délai, ou une fois terminé.
+  const modeRevision = termine || joursRestants <= Math.ceil(delaiJours * 0.2);
 
   // Densité recompactée : ce qu'il faut tenir par jour pour finir avant le plafond.
   const densite = restantes === 0 ? 0 : Math.ceil(restantes / joursRestants);
@@ -143,6 +147,7 @@ export function computePlan(
     densite,
     echeance,
     termine,
+    modeRevision,
     rythme,
     retard: ecart < 0 ? -ecart : 0,
     avance: ecart > 0 ? ecart : 0,

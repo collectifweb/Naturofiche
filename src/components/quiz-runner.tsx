@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { CheckCircle2, XCircle, ArrowRight } from "lucide-react";
+import { CheckCircle2, XCircle, ArrowRight, RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -15,23 +15,28 @@ export interface QuizQuestion {
   justification: string | null;
 }
 
-// Mini-quiz de vérification (cahier §5.4) : sélection, puis correction immédiate avec
-// explication renvoyant à la fiche. Valider = enregistrer la complétion (POST progress)
-// + le score, puis enchaîner sur la fiche suivante.
+// Mini-quiz QCM (cahier §5.4) : sélection puis correction immédiate avec explication
+// renvoyant à la fiche. Deux modes :
+// - "fiche"   : valide la fiche du jour → enregistre complétion + score (progress) et
+//   alimente les boîtes de Leitner (review), puis enchaîne la fiche suivante.
+// - "revision": pratique espacée (§5.5) → met seulement à jour les boîtes de Leitner.
 export function QuizRunner({
   courseId,
   studyUnitId,
   questions,
+  mode = "fiche",
 }: {
   courseId: string;
-  studyUnitId: string;
+  studyUnitId?: string;
   questions: QuizQuestion[];
+  mode?: "fiche" | "revision";
 }) {
   const router = useRouter();
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [revealed, setRevealed] = useState(false);
   const [saving, setSaving] = useState(false);
   const [prochaineFicheId, setProchaineFicheId] = useState<string | null>(null);
+  const [dusRestants, setDusRestants] = useState<number | null>(null);
 
   const tousRepondu = questions.every((q) => answers[q.id]);
   const score = useMemo(() => {
@@ -41,8 +46,27 @@ export function QuizRunner({
   }, [answers, questions]);
   const bons = questions.filter((q) => answers[q.id] === q.bonneReponse).length;
 
-  async function enregistrer(scoreQuiz: number | null): Promise<boolean> {
-    setSaving(true);
+  // Alimente les boîtes de Leitner (les deux modes).
+  async function enregistrerReview(): Promise<void> {
+    const resultats = questions.map((q) => ({
+      questionId: q.id,
+      correct: answers[q.id] === q.bonneReponse,
+    }));
+    try {
+      const res = await fetch(`/api/course/${courseId}/review`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ resultats }),
+      });
+      const json = await res.json();
+      if (res.ok) setDusRestants(typeof json.dus === "number" ? json.dus : null);
+    } catch {
+      // best effort : la révision n'est pas bloquante.
+    }
+  }
+
+  // Enregistre la complétion de la fiche (mode fiche uniquement).
+  async function enregistrerProgress(scoreQuiz: number | null): Promise<boolean> {
     try {
       const res = await fetch(`/api/course/${courseId}/progress`, {
         method: "POST",
@@ -56,18 +80,30 @@ export function QuizRunner({
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Échec de l'enregistrement.");
       return false;
-    } finally {
-      setSaving(false);
     }
   }
 
   async function valider() {
     setRevealed(true);
-    const ok = await enregistrer(score);
-    if (ok) toast.success("Fiche terminée. Progression enregistrée.");
+    setSaving(true);
+    try {
+      await enregistrerReview();
+      if (mode === "fiche") {
+        const ok = await enregistrerProgress(score);
+        if (ok) toast.success("Fiche terminée. Progression enregistrée.");
+      } else {
+        toast.success("Révision enregistrée.");
+      }
+    } finally {
+      setSaving(false);
+    }
   }
 
   function continuer() {
+    if (mode === "revision") {
+      router.push(`/course/${courseId}`);
+      return;
+    }
     if (prochaineFicheId) {
       router.push(`/course/${courseId}/fiche/${prochaineFicheId}`);
     } else {
@@ -76,7 +112,7 @@ export function QuizRunner({
     }
   }
 
-  // Unité sans quiz exploitable : simple marquage de complétion.
+  // Unité sans quiz exploitable (mode fiche) : simple marquage de complétion.
   if (questions.length === 0) {
     return (
       <div className="rounded-[var(--radius)] bg-card p-5 ring-1 ring-foreground/10">
@@ -97,7 +133,9 @@ export function QuizRunner({
           <Button
             onClick={async () => {
               setRevealed(true);
-              const ok = await enregistrer(null);
+              setSaving(true);
+              const ok = await enregistrerProgress(null);
+              setSaving(false);
               if (ok) toast.success("Fiche terminée.");
             }}
             size="lg"
@@ -185,8 +223,21 @@ export function QuizRunner({
             </span>{" "}
             <span className="text-muted-foreground">({score} %)</span>
           </p>
-          <Button onClick={continuer} size="lg" disabled={saving} className="mt-4 w-full">
-            {prochaineFicheId ? (
+          {mode === "revision" && dusRestants !== null && dusRestants > 0 && (
+            <Button
+              onClick={() => router.refresh()}
+              variant="outline"
+              size="lg"
+              disabled={saving}
+              className="mt-4 w-full"
+            >
+              <RotateCcw /> Réviser d&apos;autres notions ({dusRestants})
+            </Button>
+          )}
+          <Button onClick={continuer} size="lg" disabled={saving} className="mt-3 w-full">
+            {mode === "revision" ? (
+              "Terminer la révision"
+            ) : prochaineFicheId ? (
               <>
                 Fiche suivante <ArrowRight />
               </>
