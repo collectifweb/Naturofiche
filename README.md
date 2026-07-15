@@ -1,12 +1,19 @@
 # NaturoFiche
 
-Application web **mono-utilisateur, locale, PWA mobile-first** pour préparer un examen
-de formation (CMDQ) à partir d'un PDF de cours et de son PDF d'examen. Elle génère un
-parcours d'étude court (fiches de synthèse, mini-quiz, examen blanc, Q&A sourcé et persistant) avec répétition
-espacée. Tous les appels IA (Anthropic / Claude) passent côté serveur ; la clé API
-n'est jamais exposée au client.
+> Transforme un PDF de cours (et son examen) en parcours d'étude complet : fiches de synthèse, mini-quiz, examen blanc noté et Q&A sourcé, le tout avec répétition espacée. Application web mono-utilisateur, locale, PWA mobile-first. Tous les appels IA passent côté serveur, la clé n'est jamais exposée.
+
+**En bref, pour qui regarde le code.** Une app Next.js 16 / React 19 / TypeScript de bout en bout, dont le cœur est un pipeline d'ingestion Claude en plusieurs étapes :
+
+- **Sorties structurées par tool-use** (`runStructured` dans [`src/lib/anthropic.ts`](./src/lib/anthropic.ts)) : le modèle remplit un schéma, jamais du texte libre à parser.
+- **Routage multi-modèle** selon la tâche : Opus pour l'ingestion (jugement), Sonnet pour un **agent de vérification distinct** (contre-regard), Haiku pour le Q&A en direct.
+- **Pipeline en tâche de fond** ([`src/lib/ingest/`](./src/lib/ingest/)) : découpe adaptative, hiérarchisation essentiel/utile/secondaire, déduction des réponses ancrées, génération des fiches, quiz et examen, puis vérification.
+- **Recherche web outillée** (`web_search_20250305`), bornée à une requête et à des domaines santé/institutionnels, sources cliquables.
+- **Local-first et privé** : SQLite, PWA installable, clé API strictement côté serveur.
 
 Voir le cahier des charges : [`cahier-des-charges-app-etude.md`](./cahier-des-charges-app-etude.md).
+
+---
+
 Suivi des jalons : [`tasks/todo.md`](./tasks/todo.md).
 
 ## Stack
