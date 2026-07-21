@@ -90,7 +90,7 @@ rsync -a --no-perms --omit-dir-times -e "$RSH" public/         "$D/public/"
 ```
 Mettre à jour l'env serveur (DATABASE_URL MySQL en **localhost socket**, pas le tunnel) :
 ```bash
-EV='{"DATABASE_URL":"mysql://gdn73831_naturo:<MDP>@localhost:3306/gdn73831_naturo","NODE_ENV":"production","ANTHROPIC_API_KEY":"<clé>","INGEST_MODEL":"claude-opus-4-8","VERIFY_MODEL":"claude-sonnet-4-6","QA_MODEL":"claude-haiku-4-5-20251001","ACCESS_PASSWORD":"<METTRE_UN_MDP>"}'
+EV='{"DATABASE_URL":"mysql://gdn73831_naturo:<MDP>@localhost:3306/gdn73831_naturo","NODE_ENV":"production","ANTHROPIC_API_KEY":"<clé>","INGEST_MODEL":"claude-opus-4-8","VERIFY_MODEL":"claude-sonnet-5","QA_MODEL":"claude-haiku-4-5-20251001","ACCESS_PASSWORD":"<METTRE_UN_MDP>"}'
 B64=$(printf '%s' "$EV" | base64 -w0)
 ssh -i ~/.ssh/id_rsa_cpanel -p 27 gdn73831@173.209.32.227 \
   "EV=\$(echo $B64 | base64 -d); cloudlinux-selector set --json --interpreter nodejs --app-root public_html/naturo --startup-file server.js --skip-web-check --env-vars \"\$EV\"; cloudlinux-selector restart --json --interpreter nodejs --app-root public_html/naturo"

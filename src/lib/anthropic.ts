@@ -6,7 +6,7 @@ import { prisma } from "@/lib/prisma";
 // Q&A en direct = modèle léger.
 export const MODELS = {
   ingest: process.env.INGEST_MODEL ?? "claude-opus-4-8",
-  verify: process.env.VERIFY_MODEL ?? "claude-sonnet-4-6",
+  verify: process.env.VERIFY_MODEL ?? "claude-sonnet-5",
   qa: process.env.QA_MODEL ?? "claude-haiku-4-5-20251001",
 } as const;
 
