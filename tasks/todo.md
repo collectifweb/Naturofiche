@@ -208,7 +208,7 @@ Objectif : conserver les questions/réponses quand on revient sur une fiche ou u
 - **Validation** : `npm run lint` et `npx tsc --noEmit` verts ; smoke DB sur F-354/fiche `cmq0xe6ya003josbysiv9mr2w` OK (création, lecture, suppression d'une entrée test).
 - **À relancer hors sandbox** : `npm run build` échoue ici uniquement sur `next/font` sans accès Google Fonts ; le serveur dev ne peut pas être démarré depuis le sandbox (`listen EPERM`).
 
-## Correctifs audit sécurité du 17/10/2026 — noindex, garde d'accès, dépendances ⏳ plan validé le 17/10
+## Correctifs audit sécurité du 17/10/2026 — noindex, garde d'accès, dépendances ✅ déployé le 17/10
 
 ### Constats (17/10, avant correctif)
 - **Vérifié en prod** : `/` répond 200 sans redirection ; `/robots.txt` 404 ; aucun `X-Robots-Tag` dans les en-têtes.
@@ -254,8 +254,22 @@ Objectif : conserver les questions/réponses quand on revient sur une fiche ou u
 - [x] 3 commits : noindex + garde, dépendances, docs.
 
 ### 7. Déploiement OVH (`naturo@51.222.85.63`, `/home/naturo/webapps/app-naturo`)
-- [ ] Procédure absente du dépôt : SSH autorisé par Alexandre le 17/10 → lire le serveur, puis documenter.
-- [ ] Mettre `ACCESS_PASSWORD` dans l'environnement du serveur, déployer le build, redémarrer.
+- [x] Procédure absente du dépôt : SSH autorisé par Alexandre le 17/10 → lire le serveur, puis documenter.
+- [x] Mettre `ACCESS_PASSWORD` dans l'environnement du serveur, déployer le build, redémarrer.
 
 ### 8. Vérification publique
-- [ ] `X-Robots-Tag` présent ; `/` → `/login` ; `POST /api/import` → 401 ; connexion → accueil + une fiche rendue.
+- [x] `X-Robots-Tag` présent ; `/` → `/login` ; `POST /api/import` → 401 ; connexion → accueil + une fiche rendue.
+
+### Bilan (déployé le 17/10/2026 vers 22 h 40, heure de Montréal)
+- **Vérifié en public après déploiement** : `/` → 307 `/login` ; `x-robots-tag: noindex, nofollow` sur `/`, `/login`,
+  `/robots.txt`, le manifest et l'API ; meta robots dans `/login` ; `POST /api/import`, `…/ingest`, `…/qa` → 401 ;
+  connexion vide → 401 ; sonde Server Action (`Next-Action`) → 307.
+- **Vérifié connecté** : accueil, cours, fiche (texte + quiz), examen, révision, Q&A, usage → 200 ; polices, CSS,
+  icônes, `sw.js` → 200 ; Next servi = 16.4.2 ; journal d'erreurs PM2 vide depuis le redémarrage.
+- **Serveur** : sauvegarde `~/sauvegardes/app-naturo-20261018-0241.tgz` (heure du serveur, UTC) ; `.env` serveur
+  modifié sur la seule ligne `ACCESS_PASSWORD` (mot de passe choisi par Alexandre, jamais affiché) ; `pm2 save` fait.
+- **Constat** : 332 erreurs « Server Action introuvable » du 6/06 au 16/10 dans le journal, alors que l'app n'en a
+  aucune (probablement des robots qui sondent des failles de Next : déduction). Désormais arrêtées par le garde.
+- **Reste, hors périmètre** : avis modéré GHSA-cx2f-j9fh-8g68 sur mariadb 3.4.7 (correctif seulement avec
+  `@prisma/adapter-mariadb` 7, saut majeur) ; dossier mort `node_modules.npm-failed-20260605202030` sur le serveur
+  (laissé en place) ; mentions « SQLite » encore présentes dans CLAUDE.md/README alors que la prod est en MariaDB.
