@@ -244,7 +244,7 @@ Objectif : conserver les questions/réponses quand on revient sur une fiche ou u
   avec cookie → garde franchi.
 - [x] Résultat (Next 16.2.7 puis 16.4.2) : tout conforme ; 6ᵉ échec depuis une adresse → 429, bon mot de passe
   depuis une autre → 200 ; 20 échecs au total → 429 pour tous. `server.js` est passé à la racine de `.next/standalone/`.
-- [x] Reste signalé, hors périmètre : mariadb 3.4.7 garde l'avis modéré GHSA-cx2f-j9fh-8g68 (aucun correctif en 3.4.x).
+- [x] Reste signalé, hors périmètre : mariadb 3.4.7 garde l'avis modéré GHSA-cx2f-j9fh-8g68 (aucun correctif en 3.4.x). → Réglé le même soir : passage en 3.5.4 (voir « Suite »).
 
 ### 5. Docs
 - [x] `CLAUDE.md` (section Déploiement : OVH/RunCloud, plus le tunnel Cloudflare), `tasks/DEPLOY.md` (WHC → OVH),
@@ -270,7 +270,7 @@ Objectif : conserver les questions/réponses quand on revient sur une fiche ou u
   modifié sur la seule ligne `ACCESS_PASSWORD` (mot de passe choisi par Alexandre, jamais affiché) ; `pm2 save` fait.
 - **Constat** : 332 erreurs « Server Action introuvable » du 6/06 au 16/10 dans le journal, alors que l'app n'en a
   aucune (probablement des robots qui sondent des failles de Next : déduction). Désormais arrêtées par le garde.
-- **Reste, hors périmètre** : avis modéré GHSA-cx2f-j9fh-8g68 sur mariadb 3.4.7 (correctif seulement avec
+- **Reste, hors périmètre** (les 4 points ont été réglés le même soir, voir « Suite ») : avis modéré GHSA-cx2f-j9fh-8g68 sur mariadb 3.4.7 (correctif seulement avec
   `@prisma/adapter-mariadb` 7, saut majeur) ; dossier mort `node_modules.npm-failed-20260605202030` sur le serveur
   (laissé en place) ; mentions « SQLite » encore présentes dans CLAUDE.md/README alors que la prod est en MariaDB.
 

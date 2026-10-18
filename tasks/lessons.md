@@ -206,7 +206,8 @@ Patterns appris pendant le développement, pour éviter de répéter les erreurs
   Modifier le `.env` serveur ne suffit pas : `pm2 restart … --update-env` en relisant le `.env` (voir DEPLOY.md).
 - **Next 16.4 a changé l'emplacement du standalone** : `server.js` à la racine de `.next/standalone/` (en 16.2 il était
   sous `Apps-coding/Naturofiche/`, racine de traçage déduite plus haut). Vérifier le chemin avant chaque envoi.
-- **mariadb en double** : `@prisma/adapter-mariadb` 6.19 épingle sa propre copie (3.4.x), c'est elle qui est chargée.
+- **mariadb en double** : `@prisma/adapter-mariadb` 6.19 épingle sa propre copie (3.4.x), chargée en priorité. Depuis l'override
+  3.5.4 du 17/10/2026, npm a fusionné les deux copies et l'adaptateur charge la copie principale.
   Un override global heurte la dépendance directe ^3.5 : cibler `overrides["@prisma/adapter-mariadb"].mariadb`.
 - **rsync sans `--delete` laisse les copies obsolètes.** Après un dédoublonnage npm, l'ancienne copie imbriquée restait
   sur le serveur et l'adaptateur l'aurait chargée : le correctif mariadb 3.5.4 aurait été sans effet. Vérifier la
