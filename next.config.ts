@@ -27,6 +27,16 @@ const nextConfig: NextConfig = {
       "./node_modules/lru-cache/**/*",
     ],
   },
+  // App privée : noindex sur toutes les réponses (pages, API, fichiers statiques). Pas de
+  // robots.txt « Disallow » : un robot bloqué ne lirait jamais ce noindex.
+  async headers() {
+    return [
+      {
+        source: "/:path*",
+        headers: [{ key: "X-Robots-Tag", value: "noindex, nofollow" }],
+      },
+    ];
+  },
 };
 
 export default nextConfig;

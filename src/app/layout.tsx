@@ -26,6 +26,8 @@ export const metadata: Metadata = {
   description:
     "Parcours d'étude par fiches et quiz pour préparer un examen — l'essentiel pour réussir.",
   manifest: "/manifest.webmanifest",
+  // App privée : jamais indexée. Doublé par l'en-tête X-Robots-Tag (next.config.ts).
+  robots: { index: false, follow: false },
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",

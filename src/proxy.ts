@@ -22,6 +22,11 @@ export async function proxy(req: NextRequest) {
   const expected = await tokenFor(password);
   if (cookie === expected) return NextResponse.next();
 
+  // Un appel d'API refusé reçoit un 401 JSON, pas une redirection vers la page de connexion.
+  if (pathname.startsWith("/api/")) {
+    return NextResponse.json({ error: "Accès refusé : reconnecte-toi." }, { status: 401 });
+  }
+
   const url = req.nextUrl.clone();
   url.pathname = "/login";
   url.searchParams.set("from", pathname);
