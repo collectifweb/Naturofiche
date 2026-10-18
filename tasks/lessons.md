@@ -190,3 +190,21 @@ Patterns appris pendant le développement, pour éviter de répéter les erreurs
 - **Ne pas afficher les blocs de pré-recherche.** Les réponses web peuvent commencer par « je vais chercher ».
   Dans le rendu final, ignorer les textes avant le premier `web_search_tool_result` quand il existe, et garder
   les blocs texte qui suivent avec leurs citations.
+
+## Sécurité & déploiement OVH (audit du 17/10/2026)
+
+- **Une garde « optionnelle » finit désactivée.** `ACCESS_PASSWORD` vide = app ouverte : en prod, il est resté vide
+  de juin à octobre, routes d'import et d'ingestion IA comprises. Après chaque déploiement, vérifier de l'extérieur :
+  `curl -sI /` doit répondre 307 vers `/login`.
+- **Sonder une route en prod sans effet** : envoyer une requête qui échoue à la validation avant toute écriture
+  (import sans PDF → 400, id de cours inexistant → 404). Ça prouve que le code s'exécute sans rien modifier.
+- **noindex = en-tête `X-Robots-Tag` + balise meta, jamais `robots.txt` `Disallow` seul** : un robot bloqué ne lit
+  pas le noindex et peut indexer l'adresse quand même (doc Google « block-indexing »).
+- **Le build standalone embarque le `.env` local et `storage/`** : `rsync` toujours avec `--exclude='.env*'
+  --exclude='storage/'`, sinon le `.env` du serveur est écrasé.
+- **PM2 fige l'environnement au démarrage** et `@next/env` ne remplace jamais une variable déjà définie, même vide.
+  Modifier le `.env` serveur ne suffit pas : `pm2 restart … --update-env` en relisant le `.env` (voir DEPLOY.md).
+- **Next 16.4 a changé l'emplacement du standalone** : `server.js` à la racine de `.next/standalone/` (en 16.2 il était
+  sous `Apps-coding/Naturofiche/`, racine de traçage déduite plus haut). Vérifier le chemin avant chaque envoi.
+- **mariadb en double** : `@prisma/adapter-mariadb` 6.19 épingle sa propre copie (3.4.x), c'est elle qui est chargée.
+  Un override global heurte la dépendance directe ^3.5 : cibler `overrides["@prisma/adapter-mariadb"].mariadb`.

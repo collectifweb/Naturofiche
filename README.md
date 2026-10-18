@@ -60,7 +60,7 @@ npm run build && npm run start
 | `INGEST_MODEL`       | Modèle d'ingestion (défaut `claude-opus-4-8`).             |
 | `VERIFY_MODEL`       | Modèle de l'agent de vérification (défaut `claude-sonnet-5`). |
 | `QA_MODEL`           | Modèle Q&A en direct (défaut `claude-haiku-4-5-20251001`). |
-| `ACCESS_PASSWORD`    | Mot de passe d'accès optionnel (tunnel public). Vide = ouvert. |
+| `ACCESS_PASSWORD`    | Mot de passe d'accès, **rempli en production**. Vide = ouvert (local seulement). |
 
 ## Structure
 

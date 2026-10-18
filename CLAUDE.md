@@ -99,7 +99,9 @@ PDF sur disque local sous `storage/courses/<courseId>/`. Les PDF de test réels 
 
 ## Déploiement
 
-Process Node sur la machine perso (allumée en permanence), exposé par le tunnel Cloudflare existant. Pas d'hébergement tiers, pas de DB distante. `ACCESS_PASSWORD` (env) optionnel pour protéger l'accès public ; vide = app ouverte.
+**Production (depuis juin 2026)** : serveur OVH géré par RunCloud (`naturo@51.222.85.63`), domaine `naturo.le-caribou.ca`, base MariaDB via `@prisma/adapter-mariadb`. Build Next **standalone** dans `/home/naturo/webapps/app-naturo`, lancé par **PM2** (`~/pm2-local/node_modules/.bin/pm2`, process `naturofiche`, port 3001 derrière nginx-rc). Procédure complète : [tasks/DEPLOY.md](tasks/DEPLOY.md) (section OVH). Les anciennes cibles (tunnel Cloudflare, WHC cPanel) ne servent plus.
+
+**Accès** : `ACCESS_PASSWORD` est **rempli en production** depuis le 17/10/2026 (audit de sécurité) ; vide = app ouverte, à réserver au local. Le garde [src/proxy.ts](src/proxy.ts) couvre pages et `/api/*` (401 JSON pour l'API) ; `/api/login` limite à 5 échecs par adresse (`X-Real-IP` posé par nginx) et 20 au total sur 15 min. **noindex** partout : en-tête `X-Robots-Tag` ([next.config.ts](next.config.ts)) + `metadata.robots` ; pas de `robots.txt` bloquant, sinon les robots ne liraient pas le noindex.
 
 ⚠️ **L'ingestion M2 tourne en tâche de fond *dans le même process*** (fire-and-forget après la réponse HTTP). Ça suppose un **serveur Node persistant** (`next start` / `next dev`) — ça ne survivrait pas en serverless (Vercel/Lambda). Comme la cible est justement une machine perso permanente, c'est OK. Si le process redémarre en pleine ingestion, le cours reste en `ingestion` → relancer via `POST /api/course/[id]/ingest?force=1`.
 

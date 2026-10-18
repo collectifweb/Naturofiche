@@ -1,4 +1,55 @@
-# Déploiement NaturoFiche — WHC cPanel (naturo.le-caribou.ca)
+# Déploiement NaturoFiche (naturo.le-caribou.ca)
+
+## Production actuelle — OVH / RunCloud (depuis juin 2026)
+
+Relevé sur le serveur le 17/10/2026.
+
+- SSH `ssh naturo@51.222.85.63` (clé habituelle d'Alexandre). App : `/home/naturo/webapps/app-naturo`.
+- Node 24 (`/usr/bin/node`). PM2 local : `~/pm2-local/node_modules/.bin/pm2`, process `naturofiche`
+  (mode fork, `server.js`).
+- nginx-rc → `127.0.0.1:3001` (`/etc/nginx-rc/extra.d/app-naturo.location.root.naturo.conf`) ; il pose
+  `X-Real-IP` (adresse réelle du visiteur), utilisé par la limite de tentatives de `/api/login`.
+- `.env` du serveur, **jamais écrasé** : `DATABASE_URL`, `NODE_ENV`, `PORT`, `HOSTNAME`, `ANTHROPIC_API_KEY`,
+  `INGEST_MODEL`, `VERIFY_MODEL`, `QA_MODEL`, `ACCESS_PASSWORD` (rempli depuis le 17/10/2026).
+- PDF des cours dans `storage/courses/<id>/` sur le serveur, **jamais écrasés**.
+
+### Pièges
+- Le build standalone **embarque le `.env` local et `storage/` local** : toujours les exclure du rsync.
+- **PM2 garde l'environnement pris au démarrage**, et Next ne remplace jamais par le `.env` une variable
+  déjà définie, même vide (`@next/env`, `processEnv`). Après un changement du `.env` serveur : redémarrer
+  avec `--update-env` en relisant le `.env` (étape 3), puis `pm2 save`.
+- Depuis Next 16.4, `server.js` est directement dans `.next/standalone/` (en 16.2 :
+  `.next/standalone/Apps-coding/Naturofiche/`). Vérifier avant d'envoyer.
+- Jamais de `rsync --delete`.
+
+### Procédure
+```bash
+export PATH="$HOME/.nvm/versions/node/v20.20.2/bin:$PATH"
+npm run build && ls .next/standalone/server.js
+S='ssh naturo@51.222.85.63'; D='naturo@51.222.85.63:webapps/app-naturo'
+# 1. Sauvegarde du dossier de l'app
+$S 'mkdir -p ~/sauvegardes && tar czf ~/sauvegardes/app-naturo-$(date +%Y%m%d-%H%M).tgz --exclude="node_modules.npm-failed-*" -C ~/webapps app-naturo'
+# 2. Envoi (sans .env ni storage)
+rsync -a --exclude='.env*' --exclude='storage/' .next/standalone/ "$D/"
+rsync -a .next/static/ "$D/.next/static/"
+rsync -a public/ "$D/public/"
+# 3. Redémarrage en relisant le .env du serveur
+$S 'cd ~/webapps/app-naturo && env -i HOME="$HOME" PATH="$PATH" bash -c "set -a; . ./.env; set +a; ~/pm2-local/node_modules/.bin/pm2 restart naturofiche --update-env" && ~/pm2-local/node_modules/.bin/pm2 save'
+```
+
+### Vérifications
+- `curl -sI https://naturo.le-caribou.ca/` → 307 vers `/login`, en-tête `x-robots-tag: noindex, nofollow`.
+- `curl -s -X POST https://naturo.le-caribou.ca/api/import` → 401.
+- Connexion avec le mot de passe, puis accueil, une fiche, un quiz.
+- Journaux : `~/.pm2/logs/`.
+
+### Retour arrière
+Restaurer l'archive de l'étape 1 (`tar xzf ~/sauvegardes/<archive>.tgz -C ~/webapps`), puis l'étape 3.
+
+---
+
+## Historique — WHC cPanel (abandonné en juin 2026)
+
 
 Doc de déploiement **autonome**. App = Next.js 16 standalone, process Node persistant
 sous Passenger/LiteSpeed. **Ingestion faite en local** (job IA ~13 min, incompatible

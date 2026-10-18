@@ -207,3 +207,55 @@ Objectif : conserver les questions/réponses quand on revient sur une fiche ou u
 - **Migration** : `20260605155011_qa_history` crée `QaMessage`, cascade sur suppression du cours et `SET NULL` si une fiche est supprimée.
 - **Validation** : `npm run lint` et `npx tsc --noEmit` verts ; smoke DB sur F-354/fiche `cmq0xe6ya003josbysiv9mr2w` OK (création, lecture, suppression d'une entrée test).
 - **À relancer hors sandbox** : `npm run build` échoue ici uniquement sur `next/font` sans accès Google Fonts ; le serveur dev ne peut pas être démarré depuis le sandbox (`listen EPERM`).
+
+## Correctifs audit sécurité du 17/10/2026 — noindex, garde d'accès, dépendances ⏳ plan validé le 17/10
+
+### Constats (17/10, avant correctif)
+- **Vérifié en prod** : `/` répond 200 sans redirection ; `/robots.txt` 404 ; aucun `X-Robots-Tag` dans les en-têtes.
+- **Vérifié en prod** (requêtes invalides exprès : aucune écriture, aucun appel IA) : `POST /api/import` sans PDF → 400
+  « Le PDF du cours est requis. » ; `POST /api/course/<faux id>/ingest` → 404 ; `POST …/qa` → 404 ;
+  `POST /api/login {}` → `{"ok":true}` ⇒ `ACCESS_PASSWORD` est vide en prod et les routes s'exécutent sans authentification.
+- **Lu** : `src/proxy.ts` couvre déjà pages **et** `/api/*` dès que `ACCESS_PASSWORD` est rempli ; la variable est lue
+  à l'exécution (vérifié dans le build local actuel), pas figée au build.
+- **Lu** : pire cas ouvert = `POST /api/course/<id>/ingest` sur le cours prêt (id visible dans les liens de l'accueil) :
+  le cours repasse en ingestion ; si les PDF sont sur le serveur, fiches/progression/quiz sont purgés puis régénérés par
+  Opus (~8 $ d'après lessons.md), sinon le cours passe en `erreur`.
+
+### 1. noindex
+- [x] `next.config.ts` : `headers()` → `X-Robots-Tag: noindex, nofollow` sur toutes les routes (pages, API, statiques).
+- [x] `src/app/layout.tsx` : `metadata.robots = { index: false, follow: false }` → `<meta name="robots">` en filet.
+- [x] **Pas** de `robots.txt` `Disallow: /` : un robot bloqué ne voit jamais le noindex (doc Google « block-indexing », lue).
+
+### 2. Protection
+- [x] Activer le garde existant : `ACCESS_PASSWORD` rempli sur le serveur (cookie 60 jours, déjà codé).
+- [x] `src/proxy.ts` : `/api/*` sans cookie → 401 JSON au lieu d'une redirection vers `/login`.
+- [x] Limite de tentatives sur `/api/login` (choix d'Alexandre), en mémoire, façon Master Tasklist : 5 échecs / 15 min par
+  adresse, 20 au total, 429 au-delà. Mot de passe choisi par Alexandre.
+
+### 3. Dépendances (commit séparé, facile à annuler)
+- [x] `next` + `eslint-config-next` 16.2.7 → 16.4.2 (tire `sharp` ^0.35.5).
+- [x] `mariadb` : override ciblé `@prisma/adapter-mariadb › mariadb` 3.4.5 → 3.4.7 (la copie que Prisma charge) +
+  dépendance directe ^3.5.2 → ^3.5.4 (copie embarquée, non chargée). Un override global à 3.4.7 heurterait la dépendance directe.
+
+### 4. Tests (local ; le garde répond avant toute requête en base)
+- [x] `npm run lint` + `npm run build` verts ; `process.env.ACCESS_PASSWORD` toujours lu à l'exécution dans le nouveau build.
+- [x] `next start` avec mot de passe de test : en-tête sur `/login`, `/`, `/api/import`, un `/_next/static/…`, le manifest ;
+  meta robots dans `/login` ; `/` → 307 `/login` ; `POST /api/import` → 401 ; mauvais mot de passe → 401 ; bon → cookie ;
+  avec cookie → garde franchi.
+- [x] Résultat (Next 16.2.7 puis 16.4.2) : tout conforme ; 6ᵉ échec depuis une adresse → 429, bon mot de passe
+  depuis une autre → 200 ; 20 échecs au total → 429 pour tous. `server.js` est passé à la racine de `.next/standalone/`.
+- [x] Reste signalé, hors périmètre : mariadb 3.4.7 garde l'avis modéré GHSA-cx2f-j9fh-8g68 (aucun correctif en 3.4.x).
+
+### 5. Docs
+- [x] `CLAUDE.md` (section Déploiement : OVH/RunCloud, plus le tunnel Cloudflare), `tasks/DEPLOY.md` (WHC → OVH),
+  README (`ACCESS_PASSWORD`), `lessons.md`.
+
+### 6. Commit + push (chemins explicites)
+- [x] 3 commits : noindex + garde, dépendances, docs.
+
+### 7. Déploiement OVH (`naturo@51.222.85.63`, `/home/naturo/webapps/app-naturo`)
+- [ ] Procédure absente du dépôt : SSH autorisé par Alexandre le 17/10 → lire le serveur, puis documenter.
+- [ ] Mettre `ACCESS_PASSWORD` dans l'environnement du serveur, déployer le build, redémarrer.
+
+### 8. Vérification publique
+- [ ] `X-Robots-Tag` présent ; `/` → `/login` ; `POST /api/import` → 401 ; connexion → accueil + une fiche rendue.
