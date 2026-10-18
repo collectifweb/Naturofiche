@@ -8,7 +8,7 @@
 - **Routage multi-modèle** selon la tâche : Opus pour l'ingestion (jugement), Sonnet pour un **agent de vérification distinct** (contre-regard), Haiku pour le Q&A en direct.
 - **Pipeline en tâche de fond** ([`src/lib/ingest/`](./src/lib/ingest/)) : découpe adaptative, hiérarchisation essentiel/utile/secondaire, déduction des réponses ancrées, génération des fiches, quiz et examen, puis vérification.
 - **Recherche web outillée** (`web_search_20250305`), bornée à une requête et à des domaines santé/institutionnels, sources cliquables.
-- **Local-first et privé** : SQLite, PWA installable, clé API strictement côté serveur.
+- **Privé** : accès par mot de passe, pages en noindex, PWA installable, clé API strictement côté serveur.
 
 Voir le cahier des charges : [`cahier-des-charges-app-etude.md`](./cahier-des-charges-app-etude.md).
 
@@ -21,11 +21,11 @@ Suivi des jalons : [`tasks/todo.md`](./tasks/todo.md).
 - **Next.js 16** (App Router) + **React 19** + **TypeScript**
 - **Tailwind v4** + **shadcn/ui** (base-nova)
 - **Design system maison** (thème clair) : papier chaud + vert herbacé, polices Geist / Source Serif 4 — voir [DESIGN.md](./DESIGN.md) et [PRODUCT.md](./PRODUCT.md)
-- **Prisma 6** + **SQLite** (fichier local `prisma/dev.db`)
+- **Prisma 6** + **MariaDB/MySQL** via `@prisma/adapter-mariadb` (driver pur JS)
 - **API Anthropic** (`@anthropic-ai/sdk`), modèles configurables via `.env` — **pipeline d'ingestion branché** (M2, sorties structurées par tool-use)
 - **react-markdown** + **remark-gfm** — rendu des fiches (markdown + tableaux GFM) côté serveur (M3)
 - Extraction PDF : **pdf-parse** (v1, texte sélectionnable, pas d'OCR)
-- PWA installable (manifest + service worker), pensée pour le tunnel Cloudflare
+- PWA installable (manifest + service worker)
 
 ## Prérequis
 
@@ -41,8 +41,8 @@ cp .env.example .env   # puis renseigner ANTHROPIC_API_KEY
 # 2. Dépendances
 npm install
 
-# 3. Base de données (migrations + client)
-npx prisma migrate dev
+# 3. Base de données (schéma + client)
+npx prisma db push       # nécessite une base MariaDB/MySQL (DATABASE_URL)
 
 # 4. Développement
 npm run dev            # http://localhost:3000
@@ -56,7 +56,7 @@ npm run build && npm run start
 | Variable             | Rôle                                                        |
 | -------------------- | ----------------------------------------------------------- |
 | `ANTHROPIC_API_KEY`  | Clé API Anthropic (serveur uniquement).                     |
-| `DATABASE_URL`       | Chemin SQLite (`file:./dev.db`).                            |
+| `DATABASE_URL`       | URL MariaDB/MySQL (`mysql://user:pass@hôte:3306/base`).     |
 | `INGEST_MODEL`       | Modèle d'ingestion (défaut `claude-opus-4-8`).             |
 | `VERIFY_MODEL`       | Modèle de l'agent de vérification (défaut `claude-sonnet-5`). |
 | `QA_MODEL`           | Modèle Q&A en direct (défaut `claude-haiku-4-5-20251001`). |

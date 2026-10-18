@@ -1,5 +1,5 @@
 // NaturoFiche — schéma complet (mono-utilisateur).
-// DB de prod = MySQL/MariaDB (cPanel WHC), accédée via le driver adapter pur-JS
+// DB de prod = MariaDB (serveur OVH ; hébergement WHC abandonné), accédée via le driver adapter pur-JS
 // `@prisma/adapter-mariadb` (pas de moteur Rust, contourne CageFS). Voir tasks/DEPLOY.md.
 // MySQL n'a pas d'enums utilisés ici : les listes restent du String JSON (colonnes TEXT),
 // les "enums" restent des String documentés (voir commentaires). Champs longs => @db.Text

@@ -6,12 +6,12 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **NaturoFiche** — PWA mono-utilisateur d'étude par fiches. Ingère un PDF de cours + son PDF d'examen (formation naturopathie CMDQ) et génère un parcours d'étude court (fiches de synthèse + quiz) calé sur un délai fixe, en priorisant ce qui tombe à l'examen. Philosophie : **l'essentiel pour réussir (seuil 80 %), pas l'exhaustivité**. Spec complète et faisant autorité : [cahier-des-charges-app-etude.md](cahier-des-charges-app-etude.md).
 
-Mono-utilisateur, **un seul cours actif** à la fois, 100 % local derrière un tunnel Cloudflare. Clé API Anthropic strictement côté serveur.
+Mono-utilisateur, **un seul cours actif** à la fois, hébergée sur un serveur OVH derrière un mot de passe (voir Déploiement). Clé API Anthropic strictement côté serveur.
 
 ## Stack
 
 - **Next.js 16** (App Router, RSC) + **React 19** + **TypeScript** strict
-- **Prisma 6** + **SQLite** (`prisma/dev.db`) — fichier local
+- **Prisma 6** + **MariaDB/MySQL** via le driver adapter pur JS `@prisma/adapter-mariadb` ([src/lib/prisma.ts](src/lib/prisma.ts)) ; base MariaDB 11.4 sur le serveur. `prisma/dev.db` est l'ancienne base SQLite locale (période M1-M5) : l'application ne la lit plus, seul le script jetable `scripts/dump-db.mjs` la visait pour la bascule.
 - **Tailwind v4** (config CSS dans [src/app/globals.css](src/app/globals.css), **pas** de `tailwind.config`) + **shadcn/ui** (style `base-nova`, `@base-ui/react`, icônes lucide, toasts sonner)
 - **Design system appliqué** (thème **clair only**) : papier chaud + **un seul** vert herbacé ; polices **Geist** (UI) / **Source Serif 4** (lecture des fiches) / **Geist Mono**. Tokens `oklch` dans [globals.css](src/app/globals.css), composant signature [Chip](src/components/ui/chip.tsx). Source de vérité : [DESIGN.md](DESIGN.md) + [PRODUCT.md](PRODUCT.md).
 - **pdf-parse** (v1 épinglé) — extraction texte (PDF au texte sélectionnable, pas d'OCR)
@@ -27,7 +27,8 @@ npm run build        # build prod
 npm run start        # serveur prod
 npm run lint         # eslint
 
-npx prisma migrate dev --name <nom>   # créer + appliquer une migration
+npx prisma db push                    # appliquer le schéma à la base MariaDB pointée par DATABASE_URL
+# prisma/migrations/ = historique de la période SQLite (migration_lock.toml : sqlite), pas rejoué sous MySQL
 npx prisma generate                   # régénérer le client après edit du schéma
 npx prisma studio                     # explorer la DB
 ```
@@ -86,7 +87,7 @@ Le rythme est **dérivé à chaque rendu, jamais stocké**. `computePlan(course,
 - `parseExam` : format CMDQ `Question N` + options puces `• A` (repli générique `1.` / `A)`). Source : examen séparé, **ou le PDF du cours** si l'examen y est inclus.
 
 ### Données — [prisma/schema.prisma](prisma/schema.prisma)
-`Course` → `Section`, `StudyUnit` (→ `Fiche`, `Progress`), `Question` (→ `ReviewItem`), `OfficialKey`, `ApiUsageLog`. Conventions SQLite à respecter :
+`Course` → `Section`, `StudyUnit` (→ `Fiche`, `Progress`), `Question` (→ `ReviewItem`), `OfficialKey`, `ApiUsageLog`. Conventions héritées de SQLite, toujours en vigueur sous MySQL :
 - Pas de tableaux ni d'enums natifs : les listes sont des **String JSON** (`@default("[]")` — ex. `sectionsLiees`, `notionsCles`, `options`, `historique`) ; les « enums » sont des **String documentées** en commentaire (`statut`, `type`, `importance`, `statutValidation`). Toujours `JSON.parse`/`stringify` aux frontières.
 - Colonnes **en français** (`statut`, `enonce`, `bonneReponse`…). ⚠️ Ne pas calquer la convention `status` d'autres projets.
 - `Course.actif` : un seul cours actif affiché en home.
