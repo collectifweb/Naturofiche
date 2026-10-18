@@ -273,3 +273,17 @@ Objectif : conserver les questions/réponses quand on revient sur une fiche ou u
 - **Reste, hors périmètre** : avis modéré GHSA-cx2f-j9fh-8g68 sur mariadb 3.4.7 (correctif seulement avec
   `@prisma/adapter-mariadb` 7, saut majeur) ; dossier mort `node_modules.npm-failed-20260605202030` sur le serveur
   (laissé en place) ; mentions « SQLite » encore présentes dans CLAUDE.md/README alors que la prod est en MariaDB.
+
+### Suite le 17/10 — les 4 points restés en suspens ✅
+- [x] **mariadb (GHSA-cx2f-j9fh-8g68)** : override ciblé 3.4.7 → 3.5.4, **sans** Prisma 7. Vérifié : l'adaptateur 6.19.3
+  n'appelle que `createPool`, `getConnection`, `query`, `end` ; journal mariadb 3.5 sans retrait d'API. Essai sur MariaDB
+  11.4 en Docker : sorties identiques à 3.4.7 (types, textes longs, dates, JSON, groupBy, transactions, cascades) ; app
+  servie sur les données F-354 : 8 pages en 200, progression et révision écrites. `npm audit` : plus de faille sur next,
+  sharp, mariadb ni l'adaptateur. En prod, ancienne copie imbriquée supprimée, résolution vérifiée sur 3.5.4.
+- [x] **Dossier mort** `node_modules.npm-failed-20260605202030` : archivé (`~/sauvegardes/…tgz`, 1 546 entrées, 59 Mo)
+  puis supprimé.
+- [x] **Doc SQLite** : CLAUDE.md, README, `.env.example`, commentaire du schéma → MariaDB/MySQL, `prisma db push`.
+- [x] **Citations des fiches** : liseré vert 2px → liseré chaud 1px (DESIGN.md). Captures avant/après en prod, bureau et
+  mobile : 2px vert → 1px `--border`.
+- **Vérifié en prod après déploiement** : `/` → 307, API → 401, noindex présent ; connecté : 8 pages en 200 ; journal
+  d'erreurs vide depuis le redémarrage. Sauvegarde avant déploiement : `~/sauvegardes/app-naturo-20261018-0258.tgz`.

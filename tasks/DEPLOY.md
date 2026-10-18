@@ -20,7 +20,11 @@ Relevé sur le serveur le 17/10/2026.
   avec `--update-env` en relisant le `.env` (étape 3), puis `pm2 save`.
 - Depuis Next 16.4, `server.js` est directement dans `.next/standalone/` (en 16.2 :
   `.next/standalone/Apps-coding/Naturofiche/`). Vérifier avant d'envoyer.
-- Jamais de `rsync --delete`.
+- Jamais de `rsync --delete`. Revers : un fichier retiré du build **reste** sur le serveur. Quand npm
+  dédoublonne un paquet (ex. 17/10/2026 : `@prisma/adapter-mariadb/node_modules/mariadb` 3.4.7 remplacé par la
+  copie principale 3.5.4), supprimer à la main l'ancienne copie imbriquée sur le serveur, sinon Node continue de la
+  charger. Contrôle : `node -e "console.log(require.resolve('mariadb',{paths:[require('path').dirname(require.resolve('@prisma/adapter-mariadb'))]}))"`
+  lancé dans le dossier de l'app.
 
 ### Procédure
 ```bash

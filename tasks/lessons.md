@@ -208,3 +208,12 @@ Patterns appris pendant le développement, pour éviter de répéter les erreurs
   sous `Apps-coding/Naturofiche/`, racine de traçage déduite plus haut). Vérifier le chemin avant chaque envoi.
 - **mariadb en double** : `@prisma/adapter-mariadb` 6.19 épingle sa propre copie (3.4.x), c'est elle qui est chargée.
   Un override global heurte la dépendance directe ^3.5 : cibler `overrides["@prisma/adapter-mariadb"].mariadb`.
+- **rsync sans `--delete` laisse les copies obsolètes.** Après un dédoublonnage npm, l'ancienne copie imbriquée restait
+  sur le serveur et l'adaptateur l'aurait chargée : le correctif mariadb 3.5.4 aurait été sans effet. Vérifier la
+  résolution sur le serveur (`require.resolve`) après tout changement de version d'une dépendance transitive.
+- **Tester un changement de pilote sur une vraie base, pas par lecture.** MariaDB jetable en Docker (même version que
+  la prod), même script rejoué avec l'ancienne puis la nouvelle version, sorties comparées par `diff`, puis l'app
+  servie sur les vraies données (export Python de `prisma/dev.db`). Vider aussi les tables sans cascade
+  (`ApiUsageLog` est en `SetNull`) entre deux passages, sinon les totaux doublent.
+- **Lire un `.env` : prendre la dernière occurrence, ligne par ligne.** Une regex `/m` avec `\s*` après le `=`
+  déborde sur la ligne suivante quand la première occurrence est vide (cas du 17/10 : deux lignes `ACCESS_PASSWORD`).
