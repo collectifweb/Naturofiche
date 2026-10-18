@@ -147,7 +147,7 @@
   @apply my-1.5;
 }
 .fiche-prose blockquote {
-  @apply my-3 border-l-2 border-primary/40 pl-3 text-muted-foreground italic;
+  @apply my-3 border-l border-border pl-3 text-muted-foreground italic;
 }
 .fiche-prose code {
   @apply rounded bg-muted px-1.5 py-0.5 font-mono text-[0.85em];
