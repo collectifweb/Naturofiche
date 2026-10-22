@@ -23,7 +23,8 @@ Relevé sur le serveur le 17/10/2026.
   `.next/standalone/Apps-coding/Naturofiche/`). Vérifier avant d'envoyer.
 - Après une mise à jour du paquet `nodejs` (`sudo apt-get install --only-upgrade nodejs`, `naturo` est sudoer),
   le process garde l'ancienne version en mémoire : relancer avec l'étape 3, puis contrôler
-  `pm2 describe naturofiche | grep "node.js version"`.
+  `pm2 describe naturofiche | grep "node.js version"`. Le gestionnaire PM2 aussi : `pm2 update` (relance l'app depuis
+  `pm2 save`, quelques secondes de coupure).
 - Jamais de `rsync --delete`. Revers : un fichier retiré du build **reste** sur le serveur. Quand npm
   dédoublonne un paquet (ex. 17/10/2026 : `@prisma/adapter-mariadb/node_modules/mariadb` 3.4.7 remplacé par la
   copie principale 3.5.4), supprimer à la main l'ancienne copie imbriquée sur le serveur, sinon Node continue de la
