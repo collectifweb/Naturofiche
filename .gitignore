@@ -50,3 +50,6 @@ next-env.d.ts
 # Artefacts d'outils de design
 /.impeccable
 .claude/session-state.md
+
+# Copies avant modification (règle globale)
+sauvegardes/
