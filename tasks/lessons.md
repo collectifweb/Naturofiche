@@ -218,3 +218,7 @@ Patterns appris pendant le développement, pour éviter de répéter les erreurs
   (`ApiUsageLog` est en `SetNull`) entre deux passages, sinon les totaux doublent.
 - **Lire un `.env` : prendre la dernière occurrence, ligne par ligne.** Une regex `/m` avec `\s*` après le `=`
   déborde sur la ligne suivante quand la première occurrence est vide (cas du 17/10 : deux lignes `ACCESS_PASSWORD`).
+- **Droits sur le serveur : interroger avant d'affirmer.** Le 22/10/2026 j'ai annoncé que `naturo` n'avait pas de
+  sudo, sans l'avoir testé ; il est sudoer sans mot de passe. Contrôle en une commande : `sudo -n -l`.
+- **Le VPS est partagé avec d'autres sessions (Caboche).** Un constat sur le paquet `nodejs` peut changer pendant la
+  session : relire `dpkg -l nodejs` et `/var/log/apt/history.log` (`Requested-By`) juste avant d'agir.

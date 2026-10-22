@@ -5,8 +5,9 @@
 Relevé sur le serveur le 17/10/2026.
 
 - SSH `ssh naturo@51.222.85.63` (clé habituelle d'Alexandre). App : `/home/naturo/webapps/app-naturo`.
-- Node 24 (`/usr/bin/node`). PM2 local : `~/pm2-local/node_modules/.bin/pm2`, process `naturofiche`
-  (mode fork, `server.js`).
+- Node 24.22.1 (`/usr/bin/node`, paquet `nodejs` de NodeSource, installé pour tout le VPS ; passé de 24.15.0 à
+  24.22.1 le 22/10/2026 à 02:49 UTC depuis le compte `caboche`, faille Node du 21 octobre). PM2 local :
+  `~/pm2-local/node_modules/.bin/pm2`, process `naturofiche` (mode fork, `server.js`).
 - nginx-rc → `127.0.0.1:3001` (`/etc/nginx-rc/extra.d/app-naturo.location.root.naturo.conf`) ; il pose
   `X-Real-IP` (adresse réelle du visiteur), utilisé par la limite de tentatives de `/api/login`.
 - `.env` du serveur, **jamais écrasé** : `DATABASE_URL`, `NODE_ENV`, `PORT`, `HOSTNAME`, `ANTHROPIC_API_KEY`,
@@ -20,6 +21,9 @@ Relevé sur le serveur le 17/10/2026.
   avec `--update-env` en relisant le `.env` (étape 3), puis `pm2 save`.
 - Depuis Next 16.4, `server.js` est directement dans `.next/standalone/` (en 16.2 :
   `.next/standalone/Apps-coding/Naturofiche/`). Vérifier avant d'envoyer.
+- Après une mise à jour du paquet `nodejs` (`sudo apt-get install --only-upgrade nodejs`, `naturo` est sudoer),
+  le process garde l'ancienne version en mémoire : relancer avec l'étape 3, puis contrôler
+  `pm2 describe naturofiche | grep "node.js version"`.
 - Jamais de `rsync --delete`. Revers : un fichier retiré du build **reste** sur le serveur. Quand npm
   dédoublonne un paquet (ex. 17/10/2026 : `@prisma/adapter-mariadb/node_modules/mariadb` 3.4.7 remplacé par la
   copie principale 3.5.4), supprimer à la main l'ancienne copie imbriquée sur le serveur, sinon Node continue de la
