@@ -13,6 +13,11 @@ Relevé sur le serveur le 17/10/2026.
 - `.env` du serveur, **jamais écrasé** : `DATABASE_URL`, `NODE_ENV`, `PORT`, `HOSTNAME`, `ANTHROPIC_API_KEY`,
   `INGEST_MODEL`, `VERIFY_MODEL`, `QA_MODEL`, `ACCESS_PASSWORD` (rempli depuis le 17/10/2026).
 - PDF des cours dans `storage/courses/<id>/` sur le serveur, **jamais écrasés**.
+- Redémarrage du serveur : naturofiche repart par la crontab de `naturo` (`@reboot … pm2 start server.js --name
+  naturofiche --update-env`), pas par un service systemd. Le redémarrage du 14/10/2026 est bien reparti ainsi.
+- Mise à jour système du 22/10/2026 (`apt-get dist-upgrade`, 62 paquets dont MariaDB 11.4.13) : sauvegarde de toutes
+  les bases avant, dans `/var/backups/mariadb-avant-maj-20261022-0343.sql.gz` (root seulement). MariaDB a été coupé
+  environ une minute ; l'app s'est reconnectée seule.
 
 ### Pièges
 - Le build standalone **embarque le `.env` local et `storage/` local** : toujours les exclure du rsync.
