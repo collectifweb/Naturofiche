@@ -287,3 +287,18 @@ Objectif : conserver les questions/réponses quand on revient sur une fiche ou u
   mobile : 2px vert → 1px `--border`.
 - **Vérifié en prod après déploiement** : `/` → 307, API → 401, noindex présent ; connecté : 8 pages en 200 ; journal
   d'erreurs vide depuis le redémarrage. Sauvegarde avant déploiement : `~/sauvegardes/app-naturo-20261018-0258.tgz`.
+
+## Node 24.22.1 et mise à jour du VPS — 21/10/2026 (soir, heure de Montréal ; 22/10 UTC)
+
+- [x] **Node 24.22.1** (faille du 21/10) : paquet installé depuis le compte `caboche` à 02:49 UTC ; naturofiche relancé
+  (étape 3 de DEPLOY.md), puis le gestionnaire PM2 (`pm2 update`). Les deux en 24.22.1.
+- [x] **Alertes Dependabot** (58) : `shadcn` passé en dépendance de développement, sous-dépendances signalées mises à jour
+  (`npm update` ciblé). Aucune n'était dans le build de production. Build + lint verts, GitHub à 0 alerte ouverte.
+- [x] **Mise à jour du VPS** (`apt-get dist-upgrade`, 62 paquets + 3 nouveaux, dont MariaDB 11.4.13 et Redis 8.10.2) :
+  sauvegarde de toutes les bases avant (`/var/backups/mariadb-avant-maj-20261022-0343.sql.gz`), configurations
+  conservées. Après : 16 sites aux mêmes codes qu'avant, aucun service en échec, MariaDB coupé ~1 min, naturofiche
+  reconnecté seul (connexion, statut, fiche en 200).
+- [ ] **Redémarrage du serveur** demandé par Ubuntu (AppArmor) ; une dizaine de services gardent d'anciennes
+  bibliothèques en mémoire. Pas urgent : à faire à un creux, avec un instantané OVH avant, commande lancée par Alexandre.
+- [ ] Supprimer la sauvegarde `/var/backups/mariadb-avant-maj-20261022-0343.sql.gz` après quelques jours stables.
+- [ ] Hors projet : n8n (Docker) tourne avec son propre Node 24.18.1, non couvert par la mise à jour de Node.

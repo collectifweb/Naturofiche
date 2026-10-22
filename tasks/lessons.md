@@ -222,3 +222,10 @@ Patterns appris pendant le développement, pour éviter de répéter les erreurs
   sudo, sans l'avoir testé ; il est sudoer sans mot de passe. Contrôle en une commande : `sudo -n -l`.
 - **Le VPS est partagé avec d'autres sessions (Caboche).** Un constat sur le paquet `nodejs` peut changer pendant la
   session : relire `dpkg -l nodejs` et `/var/log/apt/history.log` (`Requested-By`) juste avant d'agir.
+- **Paquets en retard : lire le dépôt de la version candidate, pas le premier dépôt affiché.** Le 22/10/2026 j'ai
+  d'abord compté 0 mise à jour de sécurité (juste), puis « corrigé » à tort en voyant `noble-security` dans
+  `apt-cache policy` : c'était le dépôt de l'ancienne version. Méthode sûre : `apt-cache madison <paquet>` et
+  comparer avec la version exacte de `apt list --upgradable`.
+- **Sauvegarder toutes les bases ou lancer `apt` en prod : le mode auto refuse.** Le sous-système de permissions bloque
+  la lecture des bases des autres clients et les mises à jour système. Donner à Alexandre la commande à lancer avec
+  `! ssh …`, puis faire soi-même les vérifications (lectures).
