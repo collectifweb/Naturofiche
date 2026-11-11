@@ -1,6 +1,6 @@
 @import "tailwindcss";
 @import "tw-animate-css";
-@import "shadcn/tailwind.css";
+@import "./shadcn-tailwind.css";
 
 /* ────────────────────────────────────────────────────────────────────────
    Tokens — d'après DESIGN.md : « papier chaud tenu par une structure exacte ».

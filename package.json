@@ -9,7 +9,7 @@
     "lint": "eslint"
   },
   "dependencies": {
-    "@anthropic-ai/sdk": "^0.100.1",
+    "@anthropic-ai/sdk": "^1.8.0",
     "@base-ui/react": "^1.5.0",
     "@prisma/adapter-mariadb": "^6.19.3",
     "@prisma/client": "^6.19.3",
@@ -37,13 +37,18 @@
     "eslint": "^9",
     "eslint-config-next": "16.4.2",
     "prisma": "^6.19.3",
-    "shadcn": "^4.22.1",
     "tailwindcss": "^4",
     "typescript": "^5"
   },
   "overrides": {
     "@prisma/adapter-mariadb": {
       "mariadb": "3.5.4"
+    },
+    "@prisma/config": {
+      "deepmerge-ts": "8.0.2"
+    },
+    "@typescript-eslint/typescript-estree": {
+      "minimatch": "^11.0.8"
     }
   }
 }
