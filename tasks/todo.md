@@ -313,7 +313,23 @@ servis mais anciens. Cibles de la table du skill : Opus 5.5, Sonnet 5.5, Haiku 5
 - [x] Effort par phase (`EFFORT`) + marge de réflexion de 32 000 jetons ; recherche web Q&A : effort `low`, 8 000 jetons.
 - [x] Valeurs par défaut du code, `.env.example`, `.env` local (ignoré par git), README, CLAUDE.md, leçons.
 - [x] `tsc --noEmit`, `npm run lint`, `npm run build` : verts.
-- [ ] Essais réels sur l'API (un appel par modèle et par schéma, puis une ingestion complète de F-354) : pas de clé
-  Anthropic dans le `.env` local, à décider avec Alexandre.
+- [x] Essai réel complet en local (11/11, 13 h 56 → 14 h 07, heure de Toronto) : ingestion de F-354 + examen sur une
+  base MariaDB 11.4 jetable (Docker), serveur `next dev`, puis base et fichiers du cours d'essai supprimés.
+  - Parcours prêt en 11 min, aucune erreur dans le journal du serveur.
+  - 59 sections (30 essentiel / 20 utile / 2 secondaire / 7 méta), 50 unités, 50 fiches (529 à 3 342 caractères).
+  - Questions : 20/20 examen officiel validées, 99 quiz validés + 1 rejeté, 22 examen blanc validés.
+  - Usage : Opus 5.5 16 appels (199 266 jetons d'entrée / 65 704 de sortie), Sonnet 5.5 12 appels (105 647 / 17 695).
+    Au tarif de `claude-api` (`shared/models.md`), environ 2,11 $ + 0,39 $ = 2,50 $ US par ingestion.
+  - Q&A Haiku 5.5 : mode cours 3,5 s ; mode cours + web 4,8 s sans recherche (le cours suffisait) et 6,5 s avec
+    recherche (3 sources NIH citées). `web_search_20250305` fonctionne donc sur Haiku 5.5.
+  - Pages tableau de bord, fiche, examen blanc, usage et Q&A : HTTP 200.
+- [x] Audit du 11/11, dépendances : `npm update zod body-parser` (zod 4.4.3 → 4.6.7, body-parser 2.3.0 → 2.4.0, outils
+  de développement absents du build). `tsc`, lint et build verts. Restent à surveiller : deepmerge-ts (passe par
+  prisma 7, version majeure) et minimatch (attendre l'amont). SDK Anthropic 0.100 → 1.x : version majeure, non faite.
 - [ ] Mise en ligne : code + `.env` du serveur (trois variables de modèle) + redémarrage PM2. Sur accord d'Alexandre.
+
+**Bilan.** Les trois modèles 5.5 tournent sur le vrai pipeline sans erreur : sorties structurées conformes aux schémas
+(y compris les champs facultatifs de la vérification), marge de réflexion suffisante (aucun `stop_reason` autre que
+`end_turn`), recherche web Q&A opérationnelle. Résultat comparable au run de juin (57 sections, 47 fiches, 27 appels).
+Non fait : relecture du contenu des fiches par Alexandre, audit des consignes (prompts) écrites pour les anciens modèles.
 
