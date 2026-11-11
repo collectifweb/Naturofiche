@@ -326,7 +326,21 @@ servis mais anciens. Cibles de la table du skill : Opus 5.5, Sonnet 5.5, Haiku 5
 - [x] Audit du 11/11, dépendances : `npm update zod body-parser` (zod 4.4.3 → 4.6.7, body-parser 2.3.0 → 2.4.0, outils
   de développement absents du build). `tsc`, lint et build verts. Restent à surveiller : deepmerge-ts (passe par
   prisma 7, version majeure) et minimatch (attendre l'amont). SDK Anthropic 0.100 → 1.x : version majeure, non faite.
-- [ ] Mise en ligne : code + `.env` du serveur (trois variables de modèle) + redémarrage PM2. Sur accord d'Alexandre.
+- [x] Mise en ligne le 11/11 à 14 h 13 (heure de Toronto), sur accord d'Alexandre : commits poussés, sauvegarde
+  `~/sauvegardes/app-naturo-20261111-1912.tgz` (90 Mo, `.env` compris), envoi du build (même BUILD_ID que le local),
+  trois lignes du `.env` serveur passées en 5.5, redémarrage PM2 en relisant le `.env` + `pm2 save`.
+  - Avant : `claude-opus-4-8`, **`claude-sonnet-4-6`** (et non `claude-sonnet-5` comme le relevé de l'audit, fait sur
+    le dépôt), `claude-haiku-4-5-20251001`.
+  - Contrôles : le process tourne avec les trois modèles 5.5 (lu dans son environnement), Node 24.22.1 ; `/` → 307
+    vers `/login` avec `x-robots-tag: noindex, nofollow` ; `POST /api/import` sans mot de passe → 401 ; journal
+    d'erreurs PM2 vide depuis le redémarrage ; une vraie question au Q&A du cours actif → 200 en 2,3 s, source cours,
+    et la page d'usage liste `claude-haiku-5-5`.
+- [x] Options laissées à ma décision par Alexandre, **non appliquées** :
+  - Bascule automatique en cas de refus (`fallbacks`, en-tête bêta) : aucun refus pendant l'essai réel ; un refus met
+    le cours en `erreur` avec un message clair et se relance ; fonction en bêta qu'on ne peut pas provoquer pour la
+    tester. À revoir si un refus survient sur un futur cours.
+  - Audit des consignes (prompts) : résultats au niveau du run de juin, aucun défaut à corriger ; le valider coûterait
+    une ingestion de plus et une relecture des fiches.
 
 **Bilan.** Les trois modèles 5.5 tournent sur le vrai pipeline sans erreur : sorties structurées conformes aux schémas
 (y compris les champs facultatifs de la vérification), marge de réflexion suffisante (aucun `stop_reason` autre que

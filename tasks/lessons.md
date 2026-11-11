@@ -247,3 +247,12 @@ Patterns appris pendant le développement, pour éviter de répéter les erreurs
   `VERIFY_MODEL`, `QA_MODEL` sur le serveur garde les anciens modèles ; et Haiku 4.5 refuse `effort` (400). Code et
   `.env` serveur changent ensemble, puis redémarrage PM2 avec `--update-env`.
 
+- **Le relevé d'un audit fait sur le dépôt ne dit pas ce qui tourne en production.** Le 11/11/2026, l'audit annonçait
+  `claude-sonnet-5` pour la vérification ; le `.env` du serveur disait `claude-sonnet-4-6`. Lire les lignes de modèle
+  du `.env` serveur avant de les changer, et noter l'ancienne valeur.
+- **Ne jamais filtrer la sortie d'un `rsync` d'envoi avec `grep` dans une chaîne `&&`.** Le 11/11/2026,
+  `rsync --stats … | grep … && rsync static && rsync public` : le `grep` n'a rien trouvé (code 1), la chaîne s'est
+  arrêtée après le premier envoi, sans rien afficher. Rattrapé en relançant les trois envois (sans risque, rsync ne
+  renvoie que la différence). Lancer chaque envoi seul et afficher son code de retour.
+- **Une clé écrite `NOM = valeur` (espaces autour du `=`) est bien lue par Next** (`@next/env`, vérifié le 11/11/2026),
+  mais un `grep '^NOM=.'` ne la voit pas. Pour tester la présence d'une variable, passer par `loadEnvConfig`.
