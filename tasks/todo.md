@@ -353,19 +353,30 @@ Non fait : relecture du contenu des fiches par Alexandre, audit des consignes (p
 État mesuré (`npm audit`, 14 h 20) : 15 alertes (3 hautes, 10 modérées, 2 basses), quatre sources. Toutes viennent
 d'outils de développement ; le SDK Anthropic est la seule pièce qui touche la production.
 
-- [ ] **Linter** (typescript-eslint, 6 alertes via minimatch 10) : même la dernière version (8.72.2) demande
+- [x] **Linter** (typescript-eslint, 6 alertes via minimatch 10) : même la dernière version (8.72.2) demande
   minimatch `^10.2.2`, corrigé seulement en 11.0.1. Surcharge npm `minimatch ^11.0.8` sous
   `@typescript-eslint/typescript-estree`. Contrôle : `npm run lint` vert, et une erreur volontaire toujours détectée.
-- [ ] **shadcn** (6 alertes ; `deepmerge` 4.3.1 n'a aucune version corrigée) : le code n'utilise que
+- [x] **shadcn** (6 alertes ; `deepmerge` 4.3.1 n'a aucune version corrigée) : le code n'utilise que
   `@import "shadcn/tailwind.css"` (16 Ko, MIT). Copier ce fichier dans `src/app/`, retirer `shadcn` des dépendances
   (`npx shadcn@latest add …` reste possible). Contrôle : CSS compilé identique avant/après.
-- [ ] **deepmerge-ts** (3 alertes hautes, via `@prisma/config` 6.19.3 qui fige 7.1.5) : surcharge `deepmerge-ts 8.0.2`,
+- [x] **deepmerge-ts** (3 alertes hautes, via `@prisma/config` 6.19.3 qui fige 7.1.5) : surcharge `deepmerge-ts 8.0.2`,
   la version qu'utilise Prisma 7.10.1 avec la même fonction. Contrôle : `prisma validate`, `generate`, `db push`
   sur base jetable. (Alternative : migration complète vers Prisma 7, chantier à part, selon le choix d'Alexandre.)
-- [ ] **SDK Anthropic 0.100.1 → 1.8.0** (passe à la version d'API `2026-10-21`) : suivre
+- [x] **SDK Anthropic 0.100.1 → 1.8.0** (passe à la version d'API `2026-10-21`) : suivre
   `claude-api/shared/api-version-migration.md` — inventaire (aucun `temperature`/`top_p`/`top_k`, pas de document
   côté assistant, pas de citations renvoyées en entrée, une seule clé, pas de proxy), lecture de la section
   TypeScript du guide officiel, mise à jour, `tsc`.
-- [ ] QA : `npm audit` à 0, `tsc`, lint, build ; essai réel en local selon le choix d'Alexandre.
-- [ ] Doc (CLAUDE.md, README, leçons), commits par chemins explicites.
-- [ ] Mise en ligne (seul le SDK et la feuille de style changent le build de production), sur accord d'Alexandre.
+- [x] QA : `npm audit` à 0, `tsc`, lint, build ; essai réel en local selon le choix d'Alexandre.
+- [x] Doc (CLAUDE.md, README, leçons), commits par chemins explicites.
+  Choix d'Alexandre (14 h 21) : surcharge deepmerge-ts (pas Prisma 7), ingestion complète en local, mise en ligne dans
+  la foulée si tout passe.
+  - `npm audit` : 15 → **0**. shadcn retiré (202 paquets en moins). SDK 1.8.0 : `tsc` vert **sans modifier le code**
+    (le guide n'exigeait rien pour nos appels). Lint vert, et une erreur volontaire reste détectée (minimatch 11).
+    Build vert. CSS compilé : seule différence, une classe `.static` née d'un mot d'une leçon (voir leçons).
+  - Prisma 6 avec deepmerge-ts 8.0.2 : `validate`, `generate`, `db push` sur base jetable : OK.
+  - Essai réel (14 h 26 → 14 h 36) : 56 sections, 48 fiches, examen officiel 19 validées + 1 rejetée (comme en juin),
+    quiz 92 + 4 rejetés, examen blanc 22. Q&A : cours 3,1 s ; cours + web sans recherche 5,1 s ; avec recherche
+    7,2 s (2 sources NIH). Cinq pages en 200, journal sans erreur. Coût ≈ 2,35 $ US (Opus 1,98, Sonnet 0,38).
+  - Le SDK 1.8.0 envoie `anthropic-version: 2026-10-21` et la clé en `Authorization: Bearer`
+    (`node_modules/@anthropic-ai/sdk/client.js`). Licence du SDK : Apache 2.0 (MIT avant).
+- [ ] Mise en ligne (seul le SDK et la feuille de style changent le build de production), accord d'Alexandre donné.

@@ -256,3 +256,9 @@ Patterns appris pendant le développement, pour éviter de répéter les erreurs
   renvoie que la différence). Lancer chaque envoi seul et afficher son code de retour.
 - **Une clé écrite `NOM = valeur` (espaces autour du `=`) est bien lue par Next** (`@next/env`, vérifié le 11/11/2026),
   mais un `grep '^NOM=.'` ne la voit pas. Pour tester la présence d'une variable, passer par `loadEnvConfig`.
+- **Pour copier un fichier à l'identique, jamais `cat source > copie`** : le hook `rtk` réécrit `cat` et peut altérer
+  le contenu (vu le 11/11/2026 sur la feuille shadcn : 335 octets d'écart). Utiliser `cp` ou Python, puis comparer
+  les octets.
+- **Tailwind lit aussi les notes du projet** (`tasks/*.md`…) : un mot comme `static` dans une leçon fait naître une
+  classe `.static`. Une comparaison de CSS compilé avant/après doit en tenir compte (11/11/2026, 24 octets d'écart
+  sans rapport avec le changement testé).

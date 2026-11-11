@@ -19,10 +19,10 @@ Suivi des jalons : [`tasks/todo.md`](./tasks/todo.md).
 ## Stack
 
 - **Next.js 16** (App Router) + **React 19** + **TypeScript**
-- **Tailwind v4** + **shadcn/ui** (base-nova)
+- **Tailwind v4** + **shadcn/ui** (base-nova ; paquet `shadcn` non installé, sa feuille est copiée dans `src/app/shadcn-tailwind.css`)
 - **Design system maison** (thème clair) : papier chaud + vert herbacé, polices Geist / Source Serif 4 — voir [DESIGN.md](./DESIGN.md) et [PRODUCT.md](./PRODUCT.md)
 - **Prisma 6** + **MariaDB/MySQL** via `@prisma/adapter-mariadb` (driver pur JS)
-- **API Anthropic** (`@anthropic-ai/sdk`), modèles configurables via `.env` — **pipeline d'ingestion branché** (M2, sorties structurées par tool-use)
+- **API Anthropic** (`@anthropic-ai/sdk` 1.x), modèles configurables via `.env` — **pipeline d'ingestion branché** (M2, sorties structurées par `output_config.format`)
 - **react-markdown** + **remark-gfm** — rendu des fiches (markdown + tableaux GFM) côté serveur (M3)
 - Extraction PDF : **pdf-parse** (v1, texte sélectionnable, pas d'OCR)
 - PWA installable (manifest + service worker)
