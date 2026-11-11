@@ -379,4 +379,11 @@ d'outils de développement ; le SDK Anthropic est la seule pièce qui touche la 
     7,2 s (2 sources NIH). Cinq pages en 200, journal sans erreur. Coût ≈ 2,35 $ US (Opus 1,98, Sonnet 0,38).
   - Le SDK 1.8.0 envoie `anthropic-version: 2026-10-21` et la clé en `Authorization: Bearer`
     (`node_modules/@anthropic-ai/sdk/client.js`). Licence du SDK : Apache 2.0 (MIT avant).
-- [ ] Mise en ligne (seul le SDK et la feuille de style changent le build de production), accord d'Alexandre donné.
+- [x] Mise en ligne le 11/11 à 14 h 39 (heure de Toronto) : sauvegarde `~/sauvegardes/app-naturo-20261111-1938.tgz`,
+  build `icscsgs6B0DYmRcUW9Cjy` (embarque `anthropic-version: 2026-10-21`, plus aucune trace de `2023-06-01`),
+  `.env` serveur inchangé (déjà en 5.5), redémarrage PM2 + `pm2 save`. Contrôles : process en ligne avec les trois
+  modèles 5.5, Node 24.22.1 ; `/` → 307 + noindex ; import sans mot de passe → 401 ; aucune erreur au journal depuis le
+  redémarrage ; une vraie question au Q&A du cours actif → 200 en 2,6 s, source cours (manganèse, terrain allergique).
+
+**Bilan.** `npm audit` à 0, SDK Anthropic sur la version d'API courante, modèles 5.5 en production. Restent trois
+surcharges npm à retirer quand l'amont suivra (voir CLAUDE.md, « Surcharges npm »).
