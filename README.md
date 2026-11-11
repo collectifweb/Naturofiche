@@ -4,7 +4,7 @@
 
 **En bref, pour qui regarde le code.** Une app Next.js 16 / React 19 / TypeScript de bout en bout, dont le cœur est un pipeline d'ingestion Claude en plusieurs étapes :
 
-- **Sorties structurées par tool-use** (`runStructured` dans [`src/lib/anthropic.ts`](./src/lib/anthropic.ts)) : le modèle remplit un schéma, jamais du texte libre à parser.
+- **Sorties structurées** (`runStructured` dans [`src/lib/anthropic.ts`](./src/lib/anthropic.ts), `output_config.format`) : le modèle répond dans un schéma JSON, jamais du texte libre à parser.
 - **Routage multi-modèle** selon la tâche : Opus pour l'ingestion (jugement), Sonnet pour un **agent de vérification distinct** (contre-regard), Haiku pour le Q&A en direct.
 - **Pipeline en tâche de fond** ([`src/lib/ingest/`](./src/lib/ingest/)) : découpe adaptative, hiérarchisation essentiel/utile/secondaire, déduction des réponses ancrées, génération des fiches, quiz et examen, puis vérification.
 - **Recherche web outillée** (`web_search_20250305`), bornée à une requête et à des domaines santé/institutionnels, sources cliquables.
@@ -57,9 +57,9 @@ npm run build && npm run start
 | -------------------- | ----------------------------------------------------------- |
 | `ANTHROPIC_API_KEY`  | Clé API Anthropic (serveur uniquement).                     |
 | `DATABASE_URL`       | URL MariaDB/MySQL (`mysql://user:pass@hôte:3306/base`).     |
-| `INGEST_MODEL`       | Modèle d'ingestion (défaut `claude-opus-4-8`).             |
-| `VERIFY_MODEL`       | Modèle de l'agent de vérification (défaut `claude-sonnet-5`). |
-| `QA_MODEL`           | Modèle Q&A en direct (défaut `claude-haiku-4-5-20251001`). |
+| `INGEST_MODEL`       | Modèle d'ingestion (défaut `claude-opus-5-5`).             |
+| `VERIFY_MODEL`       | Modèle de l'agent de vérification (défaut `claude-sonnet-5-5`). |
+| `QA_MODEL`           | Modèle Q&A en direct (défaut `claude-haiku-5-5`). |
 | `ACCESS_PASSWORD`    | Mot de passe d'accès, **rempli en production**. Vide = ouvert (local seulement). |
 
 ## Structure
@@ -101,7 +101,7 @@ src/
     pdf.ts                   # extraction de texte
     sectioning.ts            # stripBoilerplate + découpage heuristique (fallback import)
     exam-parse.ts            # parsing QCM léger (fallback import)
-    anthropic.ts             # client Claude (lazy) + runStructured (tool-use) + config modèles
+    anthropic.ts             # client Claude (lazy) + runStructured (sortie structurée) + config modèles et effort
     ingest/                  # pipeline IA M2 : pipeline · structure · answers · generate · verify · progress
     plan.ts                  # moteur de plan d'étude dérivé (rythme, recalage des jours sautés) — M3, pur
     leitner.ts               # moteur de répétition espacée (boîtes, échéances, priorités) — M4, pur

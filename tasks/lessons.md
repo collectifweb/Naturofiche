@@ -78,7 +78,7 @@ Patterns appris pendant le développement, pour éviter de répéter les erreurs
 
 ## Pipeline IA (M2)
 
-- **Sortie structurée = tool-use forcé, pas du JSON en texte libre.** `runStructured()` déclare **un seul
+- **Sortie structurée = tool-use forcé, pas du JSON en texte libre.** *(Remplacé le 11/11/2026 par `output_config.format`, voir « Modèles 5.5 » plus bas.)* `runStructured()` déclare **un seul
   outil** + `tool_choice: { type:"tool", name }` et lit l'`input` validé du bloc `tool_use`. Zéro parsing
   fragile, et le modèle est contraint au schéma. Types SDK 0.100.1 : `Anthropic.Messages.Tool.InputSchema`
   et `Anthropic.Messages.Usage`. Comme les schémas locaux sont en `as const` (`required` devient un tuple
@@ -229,3 +229,21 @@ Patterns appris pendant le développement, pour éviter de répéter les erreurs
 - **Sauvegarder toutes les bases ou lancer `apt` en prod : le mode auto refuse.** Le sous-système de permissions bloque
   la lecture des bases des autres clients et les mises à jour système. Donner à Alexandre la commande à lancer avec
   `! ssh …`, puis faire soi-même les vérifications (lectures).
+
+## Modèles 5.5 (11/11/2026)
+
+- **Changer de modèle n'est pas changer une chaîne.** Opus 5.5 et Sonnet 5.5 refusent l'outil imposé
+  (`tool_choice` `tool`/`any` → 400) : tout `runStructured` serait tombé. Haiku 5.5 l'accepte encore. Quand l'outil
+  ne servait qu'à obtenir du JSON, le remplaçant est la sortie structurée (`output_config.format`), pas `auto` + nouvelle
+  tentative. Lire le guide de migration (skill claude-api, `shared/model-migration.md`) avant de toucher au code.
+- **Schéma de sortie structurée : pas de `minimum`/`maximum`/`minLength`.** `jsonSchemaOutputFormat` du SDK
+  (`@anthropic-ai/sdk/helpers/json-schema`) les retire et les recopie dans la description. Le contrôle reste côté code
+  (ex. `niveau` borné 1-3 dans `normalize`).
+- **La réflexion compte dans `max_tokens`.** Les 5.5 réfléchissent par défaut (Opus toujours) : un budget taillé pour
+  la seule réponse coupe le JSON (`stop_reason: "max_tokens"`). Régler l'effort par phase et prévoir une marge.
+- **Au-delà de ~21 000 jetons de `max_tokens`, le SDK TypeScript refuse un appel sans flux** (« Streaming is required…
+  10 minutes ») : passer par `messages.stream(...).finalMessage()`.
+- **Le `.env` du serveur prime sur les valeurs par défaut du code.** Déployer le code sans changer `INGEST_MODEL`,
+  `VERIFY_MODEL`, `QA_MODEL` sur le serveur garde les anciens modèles ; et Haiku 4.5 refuse `effort` (400). Code et
+  `.env` serveur changent ensemble, puis redémarrage PM2 avec `--update-env`.
+

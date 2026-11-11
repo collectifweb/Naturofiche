@@ -171,8 +171,7 @@ export async function genererParcours(
       model: MODELS.ingest,
       system: FICHE_SYSTEM,
       prompt,
-      toolName: "enregistrer_fiches",
-      toolDescription: "Enregistre les fiches de synthèse et leurs mini-quiz.",
+      nom: "enregistrer_fiches",
       schema: FICHE_SCHEMA,
       maxTokens: 16000,
     });
@@ -284,8 +283,7 @@ ${ref}`;
     model: MODELS.ingest,
     system: BLANC_SYSTEM,
     prompt,
-    toolName: "enregistrer_examen_blanc",
-    toolDescription: "Enregistre les questions de l'examen blanc.",
+    nom: "enregistrer_examen_blanc",
     schema: BLANC_SCHEMA,
     maxTokens: 16000,
   });

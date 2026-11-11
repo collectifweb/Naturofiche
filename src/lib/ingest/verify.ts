@@ -88,8 +88,7 @@ export async function verifierQuestions(
       model: MODELS.verify,
       system: SYSTEM,
       prompt,
-      toolName: "enregistrer_verdicts",
-      toolDescription: "Enregistre les verdicts de vérification.",
+      nom: "enregistrer_verdicts",
       schema: SCHEMA,
       maxTokens: 8000,
     });

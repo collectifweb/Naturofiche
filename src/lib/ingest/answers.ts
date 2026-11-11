@@ -104,8 +104,7 @@ ${formatQuestions(questions)}`;
     model: MODELS.ingest,
     system: SYSTEM,
     prompt,
-    toolName: "enregistrer_reponses",
-    toolDescription: "Enregistre les bonnes réponses déduites et leur ancrage.",
+    nom: "enregistrer_reponses",
     schema: SCHEMA,
     maxTokens: 12000,
   });

@@ -302,3 +302,18 @@ Objectif : conserver les questions/réponses quand on revient sur une fiche ou u
   bibliothèques en mémoire. Pas urgent : à faire à un creux, avec un instantané OVH avant, commande lancée par Alexandre.
 - [ ] Supprimer la sauvegarde `/var/backups/mariadb-avant-maj-20261022-0343.sql.gz` après quelques jours stables.
 - [ ] Hors projet : n8n (Docker) tourne avec son propre Node 24.18.1, non couvert par la mise à jour de Node.
+
+## Modèles 5.5 — 11/11/2026 (audit de sécurité du 11/11, `/maj-modeles`)
+
+Audit : `claude-opus-4-8` (ingestion), `claude-sonnet-5` (vérification), `claude-haiku-4-5-20251001` (Q&A), encore
+servis mais anciens. Cibles de la table du skill : Opus 5.5, Sonnet 5.5, Haiku 5.5.
+
+- [x] `runStructured` : outil imposé → sortie structurée (`output_config.format`), en flux, erreur si `stop_reason`
+  ≠ `end_turn`. Six appels adaptés (`toolName` → `nom`, `toolDescription` retiré).
+- [x] Effort par phase (`EFFORT`) + marge de réflexion de 32 000 jetons ; recherche web Q&A : effort `low`, 8 000 jetons.
+- [x] Valeurs par défaut du code, `.env.example`, `.env` local (ignoré par git), README, CLAUDE.md, leçons.
+- [x] `tsc --noEmit`, `npm run lint`, `npm run build` : verts.
+- [ ] Essais réels sur l'API (un appel par modèle et par schéma, puis une ingestion complète de F-354) : pas de clé
+  Anthropic dans le `.env` local, à décider avec Alexandre.
+- [ ] Mise en ligne : code + `.env` du serveur (trois variables de modèle) + redémarrage PM2. Sur accord d'Alexandre.
+

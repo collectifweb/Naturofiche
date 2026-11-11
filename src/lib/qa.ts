@@ -1,6 +1,6 @@
 import type { Section } from "@prisma/client";
 import type Anthropic from "@anthropic-ai/sdk";
-import { getAnthropic, logUsage, MODELS, runStructured } from "@/lib/anthropic";
+import { EFFORT, getAnthropic, logUsage, MODELS, runStructured } from "@/lib/anthropic";
 
 type QaSection = Pick<Section, "id" | "titre" | "texte" | "type" | "ordre">;
 
@@ -131,8 +131,7 @@ export async function repondreQuestion(
     system:
       "Reponds a l'etudiant en t'appuyant D'ABORD sur les extraits du cours fournis. Si l'info n'y est pas, complete avec tes connaissances et marque la source en consequence. N'invente pas d'ancrage : source=cours seulement si la reponse vient des extraits. source=mixte si tu combines cours et connaissances externes. Reponds en francais, clairement et sans inventer de citation.",
     prompt: `Question de l'etudiant :\n${question}\n\nExtraits du cours :\n${contexte}`,
-    toolName: "reponse_question_cours",
-    toolDescription: "Reponse sourcee a une question d'etude.",
+    nom: "reponse_question_cours",
     schema: QA_SCHEMA,
     maxTokens: 1200,
   });
@@ -189,6 +188,10 @@ function sectionsCiteesDepuisTexte(texte: string, sections: QaSection[]): number
   return Array.from(citees.values());
 }
 
+// Réponse d'environ 1 600 jetons + la réflexion de Haiku 5.5, qui compte dans max_tokens.
+// Rester sous ~21 000 : au-delà, le SDK exige un appel en flux.
+const MAX_TOKENS_WEB = 8000;
+
 async function createWebSearchMessage({
   model,
   system,
@@ -209,6 +212,7 @@ async function createWebSearchMessage({
       max_tokens: maxTokens,
       system,
       messages: messages ?? [{ role: "user", content: prompt }],
+      output_config: { effort: EFFORT.qa },
       tools: [
         {
           type: "web_search_20250305",
@@ -249,7 +253,7 @@ export async function repondreQuestionAvecWeb(
     model,
     system,
     prompt,
-    maxTokens: 1600,
+    maxTokens: MAX_TOKENS_WEB,
   });
 
   if (res.stop_reason === "pause_turn") {
@@ -257,7 +261,7 @@ export async function repondreQuestionAvecWeb(
       model,
       system,
       prompt,
-      maxTokens: 1600,
+      maxTokens: MAX_TOKENS_WEB,
       messages: [
         { role: "user", content: prompt },
         { role: "assistant", content: res.content },

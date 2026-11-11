@@ -15,7 +15,7 @@ Mono-utilisateur, **un seul cours actif** à la fois, hébergée sur un serveur 
 - **Tailwind v4** (config CSS dans [src/app/globals.css](src/app/globals.css), **pas** de `tailwind.config`) + **shadcn/ui** (style `base-nova`, `@base-ui/react`, icônes lucide, toasts sonner)
 - **Design system appliqué** (thème **clair only**) : papier chaud + **un seul** vert herbacé ; polices **Geist** (UI) / **Source Serif 4** (lecture des fiches) / **Geist Mono**. Tokens `oklch` dans [globals.css](src/app/globals.css), composant signature [Chip](src/components/ui/chip.tsx). Source de vérité : [DESIGN.md](DESIGN.md) + [PRODUCT.md](PRODUCT.md).
 - **pdf-parse** (v1 épinglé) — extraction texte (PDF au texte sélectionnable, pas d'OCR)
-- **@anthropic-ai/sdk** — ingestion IA **branchée** (pipeline M2, [src/lib/ingest/](src/lib/ingest/)) ; sorties structurées par **tool-use forcé** ([`runStructured`](src/lib/anthropic.ts))
+- **@anthropic-ai/sdk** — ingestion IA **branchée** (pipeline M2, [src/lib/ingest/](src/lib/ingest/)) ; sorties structurées par **`output_config.format`** ([`runStructured`](src/lib/anthropic.ts)) ; modèles 5.5 depuis le 11/11/2026
 - **react-markdown** + **remark-gfm** — rendu des fiches markdown (tableaux GFM) **côté serveur** ([FicheMarkdown](src/components/fiche-markdown.tsx), classe `.fiche-prose`)
 - Alias d'import : `@/*` → `./src/*` ; util `cn()` dans [src/lib/utils.ts](src/lib/utils.ts)
 
@@ -80,7 +80,9 @@ Le rythme est **dérivé à chaque rendu, jamais stocké**. `computePlan(course,
   - `VERIFY_MODEL` (Sonnet) — contre-regard : valide l'unicité et l'ancrage de chaque bonne réponse, signale les hallucinations.
   - `QA_MODEL` (Haiku) — Q&A en direct, plus fréquent.
 - `getAnthropic()` est lazy ; la clé ne quitte **jamais** le serveur. **Tous les appels IA passent par des routes API serveur.**
-- `runStructured<T>()` — helper unique : déclare **un seul outil** + `tool_choice` forcé → renvoie l'`input` validé du `tool_use` (pas de parsing de texte libre) et journalise `ApiUsageLog` (phase, modèle, tokens) à chaque appel.
+- `runStructured<T>()` — helper unique : **sortie structurée** (`output_config.format`, schéma passé par `jsonSchemaOutputFormat` du SDK, qui retire `minimum`/`maximum` non pris en charge) → renvoie le JSON conforme au schéma et journalise `ApiUsageLog` (phase, modèle, tokens) à chaque appel. **Plus d'outil imposé** : Opus 5.5 et Sonnet 5.5 refusent `tool_choice` `tool`/`any` (400). Appel **en flux** (`stream().finalMessage()`), car le budget dépasse ~21 000 jetons, seuil au-delà duquel le SDK refuse un appel sans flux. Lève une erreur si `stop_reason` n'est pas `end_turn` (refus de sécurité, réponse coupée).
+- **Réflexion** : les trois modèles 5.5 réfléchissent (Opus toujours, Sonnet et Haiku par défaut) et la réflexion compte dans `max_tokens`. `EFFORT` fixe l'effort par phase (ingestion `medium`, vérification `high`, Q&A `low`) ; `runStructured` ajoute une marge de 32 000 jetons au budget de réponse de chaque appel. La recherche web Q&A passe à 8 000 jetons, effort `low`.
+- **Effort et anciens modèles** : `output_config.effort` fait échouer Haiku 4.5 et Sonnet 4.5 (400). Remettre un de ces modèles par `.env` casse l'appel ; garder des modèles qui acceptent l'effort.
 
 ### Heuristiques [src/lib/sectioning.ts](src/lib/sectioning.ts) / [src/lib/exam-parse.ts](src/lib/exam-parse.ts) — fallback rapide à l'import
 - `stripBoilerplate()` (retire pieds/en-têtes CMDQ récurrents) est **toujours utilisé** : le pipeline IA s'en sert pour nettoyer le texte avant la découpe. Le découpe-par-titres (`sectionize`) et le parsing QCM (`parseExam`) restent appelés **à l'import** pour une vue immédiate + créer les rangs `examen_officiel` ; **le pipeline M2 purge ensuite ces sections heuristiques et les remplace** par la découpe IA.

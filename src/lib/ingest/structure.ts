@@ -131,8 +131,7 @@ ${numbered}`;
     model: MODELS.ingest,
     system: SYSTEM,
     prompt,
-    toolName: "enregistrer_decoupage",
-    toolDescription: "Enregistre le découpage et la hiérarchisation du cours.",
+    nom: "enregistrer_decoupage",
     schema: SCHEMA,
     maxTokens: 16000,
   });
